@@ -104,6 +104,18 @@ class DBSinaMinute(object):
     line_date = 'date'  # 30
     line_time = 'time'  # 31
 
+    # 表的列, 不包含id
+    columns = (
+        line_open, line_last_close, line_cur, line_high,
+        line_low, line_try_buy, line_try_sell,
+        line_volume, line_volume_money, line_buy1_volume, line_buy1,
+        line_buy2_volume, line_buy2, line_buy3_volume, line_buy3,
+        line_buy4_volume, line_buy4, line_buy5_volume, line_buy5,
+        line_sell1_volume, line_sell1, line_sell2_volume, line_sell2,
+        line_sell3_volume, line_sell3, line_sell4_volume, line_sell4,
+        line_sell5_volume, line_sell5, line_date, line_time,
+    )
+
     column_dict = {
         line_id: 0,
         line_open: 1,
@@ -136,7 +148,7 @@ class DBSinaMinute(object):
         line_sell5_volume: 28,
         line_sell5: 29,
         line_date: 30,
-        line_time: 31
+        line_time: 31,
     }
 
     def __init__(self, db_year):
@@ -144,20 +156,69 @@ class DBSinaMinute(object):
         self.db_year = db_year
         self.stock_names = DBYahooDay().select_all_stock_names()
 
-    def create_all_db_all_tables(self, create_year):
+        # 临时记录打开的状态
+        self.con = None
+        self.cursor = None
+
+    def clean_minute_date(self):
         """
-        创建所有st的表
-        :param create_year: 创建的年份
+        清除minute的数据, 慎用
         """
         for stock_name in self.stock_names:
-            # 搞定db路径
-            db_name = '%s_%s' % (stock_name, create_year)
-            db_file_name = db_name + '.db'
-            db_file_path = os.path.join(self._db_file_dir, db_file_name)
+            self.open_one_table(stock_name)
+            self.cursor.execute('delete from ' + self.get_table_name(stock_name))
+            self.con.commit()
+            self.close_one_table()
 
-            # 建表
-            db_con = sqlite3.connect(db_file_path)
-            db_cursor = db_con.cursor()
+    def add_one_line_to_table(self, stock_name, value_str):
+        """
+        向现有的表中添加一行, 需要手动打开和关闭, 手动commit
+        :param stock_name: 名称
+        :param value_str: 值的list, 顺序必须得对
+        """
+        self.open_one_table(stock_name)
+        self.cursor.execute(
+            'insert into %s (%s) values (%s)' % (self.get_table_name(stock_name), ','.join(self.columns), value_str))
+        self.con.commit()
+        self.close_one_table()
+
+    def open_one_table(self, stock_name):
+        """
+        打开一张现有的表
+        :param stock_name: 名称
+        """
+        self.con = sqlite3.connect(self.get_db_path(stock_name))
+        self.cursor = self.con.cursor()
+
+    def close_one_table(self):
+        """
+        关闭一张现有的表
+        """
+        self.cursor.close()
+        self.con.close()
+
+    def get_table_name(self, stock_name):
+        """
+        获取数据库名称
+        :param stock_name: st名称
+        :return: db名称
+        """
+        return '%s_%s' % (stock_name, self.db_year)
+
+    def get_db_path(self, stock_name):
+        """
+        获取数据库的路径, 数据库名称就是数据库表名后面加上db后缀
+        :param stock_name: st名称
+        :return: st db路径
+        """
+        return os.path.join(self._db_file_dir, self.get_table_name(stock_name) + '.db')
+
+    def create_all_db_all_tables(self):
+        """
+        创建所有st的表
+        """
+        for stock_name in self.stock_names:
+            self.open_one_table(stock_name)
             db_columes = (
                 self.line_id + ' integer primary key',
                 self.line_open + ' double',
@@ -166,12 +227,12 @@ class DBSinaMinute(object):
                 self.line_high + ' double',
                 self.line_low + ' double',
                 self.line_try_buy + ' double',
-                self.line_try_sell +' double',
+                self.line_try_sell + ' double',
                 self.line_volume + ' bigint',
                 self.line_volume_money + ' bigint',
                 self.line_buy1_volume + ' bigint',
                 self.line_buy1 + ' double',
-                self.line_buy2_volume + ' bigint,',
+                self.line_buy2_volume + ' bigint',
                 self.line_buy2 + ' double',
                 self.line_buy3_volume + ' bigint',
                 self.line_buy3 + ' double',
@@ -186,9 +247,14 @@ class DBSinaMinute(object):
                 self.line_sell3_volume + ' bigint',
                 self.line_sell3 + ' double',
                 self.line_sell4_volume + ' bigint',
-
+                self.line_sell4 + ' double',
+                self.line_sell5_volume + ' bigint',
+                self.line_sell5 + ' double',
+                self.line_date + ' varchar(20)',
+                self.line_time + ' varchar(20)',
             )
-            db_cursor.execute('create table %s (%s)' % (db_name, ','.join(db_columes)))
+            self.cursor.execute('create table %s (%s)' % (self.get_table_name(stock_name), ','.join(db_columes)))
+            self.close_one_table()
 
 
 class DBYahooDay(DBBase):
@@ -478,6 +544,10 @@ class DBYahooDay(DBBase):
 
 if __name__ == '__main__':
     pass
+    # 创建所有分钟的数据表
+    # sina_db = DBSinaMinute(2015)
+    # sina_db.clean_minute_date()
+
     # 更新前几天的percent
     # yahoo_db = DBYahooDay()
     # yahoo_db.fill_percent_for_all_stock(-1)

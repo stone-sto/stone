@@ -8,7 +8,7 @@ import urllib2
 import requests
 import thread
 
-from data.db.db_helper import DBYahooDay
+from data.db.db_helper import DBYahooDay, DBSinaMinute
 from log.log_utils import log_by_time
 
 
@@ -20,14 +20,60 @@ class SinaDownload(object):
     def __init__(self):
         super(SinaDownload, self).__init__()
         self.yahoo_db = DBYahooDay()
+        self.sina_db = DBSinaMinute(2015)
+        self.stock_names = self.yahoo_db.select_all_stock_names()
+
+    def download_one_minute(self, stock_names):
+        """
+        下载一次
+        :param stock_names: 要下载的st列表
+        """
+        for stock_name in stock_names:
+            stock_info = self.download_one_minute_for_one_stock(stock_name)
+            if stock_info:
+                self.sina_db.add_one_line_to_table(stock_name, stock_info)
+
+    def get_sina_download_url(self, stock_name):
+        """
+        获得sina的下载链接
+        :param stock_name: 名称
+        :return: url
+        """
+        # 搞定链接
+        if stock_name.endswith('ss'):
+            tag = 'sh'
+        else:
+            tag = 'sz'
+        return 'http://hq.sinajs.cn/list=%s' % (tag + stock_name[1:-3])
+
+    def download_one_minute_for_one_stock(self, stock_name):
+        """
+        下载一个st的一次, 并生成可以写入分钟表的数据
+        :param stock_name:  st名称
+        :return: 一个st的一行数据, 格式是整理好的
+        """
+        sina_url = self.get_sina_download_url(stock_name)
+        try:
+            stock_request = requests.get(sina_url, timeout=30)
+            if stock_request.status_code == 200:
+                stock_info = stock_request.text.split('"')[1].split(',')
+                stock_info[-2] = '"%s"' % stock_info[-2]
+                stock_info[-3] = '"%s"' % stock_info[-3]
+                return ','.join(stock_info[1:-1])
+            else:
+                log_by_time(stock_name + ' minute update failed with status code ' + str(stock_request.status_code))
+                return None
+        except:
+            log_by_time(stock_name + ' minite update faied.')
+            traceback.print_exc()
+            return None
 
     def update_cur_day(self):
         """
         从新浪更新当天的数据, 必须收盘之后执行
         """
-        stock_names = self.yahoo_db.select_all_stock_names()
         self.yahoo_db.open()
-        for stock_name in stock_names:
+        for stock_name in self.stock_names:
             self.update_one_stock(stock_name)
         self.yahoo_db.close()
 
@@ -37,11 +83,7 @@ class SinaDownload(object):
         :param stock_name:   名称
         """
         # 搞定链接
-        if stock_name.endswith('ss'):
-            tag = 'sh'
-        else:
-            tag = 'sz'
-        sina_url = 'http://hq.sinajs.cn/list=%s' % (tag + stock_name[1:-3])
+        sina_url = self.get_sina_download_url(stock_name)
         log_by_time(sina_url)
 
         # 搞定下载
@@ -52,30 +94,32 @@ class SinaDownload(object):
                 stock_info = stock_request.text.split('"')[1].split(',')
                 # print stock_info
                 # 开始存数据库
-                self.yahoo_db.insert_into_table(stock_name, [
-                    DBYahooDay.line_date,
-                    DBYahooDay.line_open,
-                    DBYahooDay.line_high,
-                    DBYahooDay.line_low,
-                    DBYahooDay.line_close,
-                    DBYahooDay.line_volume,
-                    DBYahooDay.line_adj_close,
-                ], [
-                    # date
-                    '"%s"' % stock_info[-3],
-                    # open
-                    stock_info[1],
-                    # high
-                    stock_info[4],
-                    # low
-                    stock_info[5],
-                    # close, 实际上是现价, 所以一定要收盘之后才能运行
-                    stock_info[3],
-                    # volume
-                    stock_info[8],
-                    # adj close, 新浪没有这个字段, 存个-1, 以后如果用了再想办法
-                    '-1',
-                ])
+                self.yahoo_db.insert_into_table(stock_name,
+                                                [
+                                                    DBYahooDay.line_date,
+                                                    DBYahooDay.line_open,
+                                                    DBYahooDay.line_high,
+                                                    DBYahooDay.line_low,
+                                                    DBYahooDay.line_close,
+                                                    DBYahooDay.line_volume,
+                                                    DBYahooDay.line_adj_close,
+                                                ],
+                                                [
+                                                    # date
+                                                    '"%s"' % stock_info[-3],
+                                                    # open
+                                                    stock_info[1],
+                                                    # high
+                                                    stock_info[4],
+                                                    # low
+                                                    stock_info[5],
+                                                    # close, 实际上是现价, 所以一定要收盘之后才能运行
+                                                    stock_info[3],
+                                                    # volume
+                                                    stock_info[8],
+                                                    # adj close, 新浪没有这个字段, 存个-1, 以后如果用了再想办法
+                                                    '-1',
+                                                ])
                 self.yahoo_db.connection.commit()
             else:
                 log_by_time(stock_name + ' daily update failed with http code ' + str(stock_request.status_code))
@@ -249,9 +293,12 @@ def run_every_day():
     yahoo_db.fill_percent_for_all_stock(-1)
     yahoo_db.fill_point_for_all_stock(-1)
 
+
 if __name__ == '__main__':
     pass
 
+    sina_down = SinaDownload()
+    sina_down.download_one_minute()
     # 每日下载
     # SinaDownload().update_cur_day()
     # run_every_day()
