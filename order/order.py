@@ -33,7 +33,7 @@ class OrderSys(object):
     def all_tax(cost_order):
         """
         所有的手续费, 税什么都都包含了
-        :param cost_order: 当前这一单的order
+        :param cost_order: 产生手续费的order
         :return: 一个float的money
         """
         # 后续需要精确的时候再实现就可以, 现在有个意思一下就行

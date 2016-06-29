@@ -307,6 +307,17 @@ class DBYahooDay(DBBase):
     def _db_file_path(self):
         return '/Users/wgx/workspace/data/db_yahoo_day.db'
 
+    def del_target_date_lines(self, target_date):
+        """
+        删除指定日期的行, 慎用
+        """
+        stock_names = self.select_all_stock_names()
+        self.open()
+        for stock_name in stock_names:
+            self.cursor.execute('delete from ' + stock_name + ' where date = "' + target_date + '"')
+        self.connection.commit()
+        self.close()
+
     def select_all_stock_names(self):
         """
         查询所有的表名
@@ -544,6 +555,9 @@ class DBYahooDay(DBBase):
 
 if __name__ == '__main__':
     pass
+    # 删除某一日期的数据
+    yahoo_db = DBYahooDay()
+    yahoo_db.del_target_date_lines('2016-06-28')
     # 创建所有分钟的数据表
     # sina_db = DBSinaMinute(2015)
     # sina_db.clean_minute_date()
