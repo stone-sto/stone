@@ -1,6 +1,7 @@
 #! -*- encoding:utf-8 -*-
 
 # 订单相关的在这里, 依赖于account
+from account.account import MoneyAccount, HoldStock
 
 
 class Order(object):
@@ -8,8 +9,13 @@ class Order(object):
     订单
     """
 
-    def __init__(self, deal_type, price, count, deal_date, deal_time):
+    order_type_buy = 0
+    order_type_sell = 1
+
+    def __init__(self, stock_name, deal_type, price, count, deal_date, deal_time):
         super(Order, self).__init__()
+        # st名称
+        self.stock_name = stock_name
         # 类型 0 买入 1 卖出
         self.type = deal_type
         # 交易价格
@@ -20,17 +26,14 @@ class Order(object):
         self.date = deal_date
         # 交易时间
         self.time = deal_time
+        # st的费用
+        self.stock_cost = price * count
+        # 税和手续费
+        self.tax = self.all_tax()
         # 总流水
-        self.all_cost = 0
+        self.all_cost = self.stock_cost + self.tax
 
-
-class OrderSys(object):
-    """
-    定义买卖的接口
-    """
-
-    @staticmethod
-    def all_tax(cost_order):
+    def all_tax(self):
         """
         所有的手续费, 税什么都都包含了
         :param cost_order: 产生手续费的order
@@ -39,11 +42,22 @@ class OrderSys(object):
         # 后续需要精确的时候再实现就可以, 现在有个意思一下就行
         return 10
 
+
+class OrderSys(object):
+    """
+    定义买卖的接口
+    """
+
     def __init__(self, opt_account):
+        """
+        :param opt_account:
+        :type opt_account: MoneyAccount
+        """
         super(OrderSys, self).__init__()
         #  暂时只支持一个账户, 所以直接用一个变量和list来存账户的相关信息
         self.account = opt_account
         self.order_list = list()
+        self.err_msg = ''
 
     def buy(self, stock_name, count, price, buy_date, buy_time):
         """
@@ -55,6 +69,19 @@ class OrderSys(object):
         :param buy_time: 时间
         :return: 成功与否, 主要就看账户余额够不够
         """
+        # 创建一个订单, 不一定交易成功, 只是临时的
+        create_order = Order(stock_name, Order.order_type_buy, price, count, buy_date, buy_time)
+
+        # 判定是否能够买入
+        if create_order.all_cost > self.account.cash:
+            self.err_msg = 'No enough cash'
+            return False
+
+        # 可以买, 操作account
+        self.account.cash -= create_order.all_cost
+        # 建立持仓
+        stock = HoldStock()
+
 
     def sell(self, stock_name, count, price, buy_date, buy_time):
         """
