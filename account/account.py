@@ -186,3 +186,4 @@ class MoneyAccount(object):
         self.property = cash
         # 账户原始价值
         self.origin_property = cash
+        

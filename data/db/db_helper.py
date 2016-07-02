@@ -151,6 +151,39 @@ class DBSinaMinute(object):
         line_time: 31,
     }
 
+    line_id_index = 0
+    line_open_index = 1
+    line_last_close_index = 2
+    line_cur_index = 3
+    line_high_index = 4
+    line_low_index = 5
+    line_try_buy_index = 6
+    line_try_sell_index = 7
+    line_volume_index = 8
+    line_volume_money_index = 9
+    line_buy1_volume_index = 10
+    line_buy1_index = 11
+    line_buy2_volume_index = 12
+    line_buy2_index = 13
+    line_buy3_volume_index = 14
+    line_buy3_index = 15
+    line_buy4_volume_index = 16
+    line_buy4_index = 17
+    line_buy5_volume_index = 18
+    line_buy5_index = 19
+    line_sell1_volume_index = 20
+    line_sell1_index = 21
+    line_sell2_volume_index = 22
+    line_sell2_index = 23
+    line_sell3_volume_index = 24
+    line_sell3_index = 25
+    line_sell4_volume_index = 26
+    line_sell4_index = 27
+    line_sell5_volume_index = 28
+    line_sell5_index = 29
+    line_date_index = 30
+    line_time_index = 31
+
     def __init__(self, db_year):
         super(DBSinaMinute, self).__init__()
         self.db_year = db_year
