@@ -2,9 +2,69 @@
 
 # 这里管账户的相关信息
 # 账户管钱和持仓的变化, 定义明确参数, 注释表明具体是什么意思
-from datetime import date, datetime
+from datetime import date, datetime, time
 
+from data.db.db_helper import DBYahooDay
+from data.info import Infos
 from log import time_utils
+from log.time_utils import resolve_date, time_never_used
+
+
+class Order(object):
+    """
+    订单
+    """
+
+    order_type_buy = 0
+    order_type_sell = 1
+
+    def __init__(self, stock_name, deal_type, price, count, deal_date, deal_time=None):
+        """
+        :param stock_name: 名称
+        :type stock_name: str
+        :param deal_type: 买入 0  卖出 1
+        :type deal_type: int
+        :param price:
+        :type price: float
+        :param count:
+        :type count: int
+        :param deal_date:
+        :type deal_date:date
+        :param deal_time:
+        :type deal_time: time
+        """
+        super(Order, self).__init__()
+        # st名称
+        self.stock_name = stock_name
+        # 类型 0 买入 1 卖出
+        self.type = deal_type
+        # 交易价格
+        self.price = price
+        # 交易数量
+        self.count = count
+        # 交易日期
+        self.date = deal_date
+        # 交易时间
+        if deal_time:
+            self.time = deal_time
+        else:
+            self.time = resolve_date(time_never_used)
+
+        # st的费用
+        self.stock_cost = price * count
+        # 税和手续费
+        self.tax = self.all_tax()
+        # 总流水
+        self.all_cost = self.stock_cost + self.tax
+
+    def all_tax(self):
+        """
+        所有的手续费, 税什么都都包含了
+        :param cost_order: 产生手续费的order
+        :return: 一个float的money
+        """
+        # 后续需要精确的时候再实现就可以, 现在有个意思一下就行
+        return 10
 
 
 class HoldStock(object):
@@ -53,6 +113,13 @@ class HoldStock(object):
         st现在的总价值
         """
         return self.cur_price * self.count
+
+    @property
+    def stock_cost_property(self):
+        """
+        st成本价值
+        """
+        return self.cost_price * self.count
 
     def update_avail_by_date(self, update_date):
         """
@@ -132,6 +199,8 @@ class HoldStock(object):
         # 更新收益
         self.refresh_returns()
 
+        return True
+
     def sell(self, price, count, update_date):
         """
         卖出操作
@@ -168,22 +237,163 @@ class HoldStock(object):
         # 因为时间可能变了, 所以还要更新下收益
         self.refresh_returns()
 
+        return True
+
 
 class MoneyAccount(object):
     """
     账户的信息都在这里了
+    在infos的上层
     """
 
     def __init__(self, cash, returns):
         super(MoneyAccount, self).__init__()
         # 账户中可用的现金
         self.cash = cash
-        # 创建账户开始, 到目前的总收益
+        # 创建账户开始, 到目前的总收益, 所有hold_st的总值*returns_percent的加和 / origin_property
         self.returns = returns
         # 账户中的持股情况, 用name做key
         self.stocks = dict()
+        """:type: dict[str, HoldStock]"""
         # 账户当前总价值
         self.property = cash
         # 账户原始价值
         self.origin_property = cash
-        
+        # 订单的全部信息, 暂时还没想到订单除了能用来做结果展示和debug, 还有其他的什么用
+        self.order_list = []
+        """:type: list[Order]"""
+
+    def update_with_all_stock_one_line(self, stock_line_dict):
+        """
+        更新account情况
+        :param stock_line_dict: 数据的字典, 格式{stock_name: stock_line}, 注意, 数据实际上只是一天的, 传进来的时候一定要拼好
+        :type stock_line_dict: dict[str, list]
+        """
+        for stock_name in self.stocks.keys():
+            hold_stock = self.stocks.get(stock_name)
+            # 判定数据是不是在, 然后更新
+            if stock_name in stock_line_dict:
+                stock_line = stock_line_dict.get(stock_name)
+                hold_stock.update(stock_line[DBYahooDay.line_close_index],
+                                  resolve_date(stock_line[DBYahooDay.line_date_index]))
+            else:
+                print 'werror : stock_line_dict is not enough, may cause something error.'
+
+        # 更新完st, 更新自己
+        self.update_self()
+
+    def update_self(self):
+        """
+        更新account的相关信息, 注意, 需要更新完所有的hold_st之后进行
+        当然, 如果st未更新完全,  那么account相应也不会更新完全, 但是还是可以更新
+        """
+        # 更新完st, 更新自己
+        # 计算return和property
+        all_return_value = 0
+        all_stock_property = 0
+        to_del_stocks = []
+        for stock_name in self.stocks.keys():
+            hold_stock = self.stocks.get(stock_name)
+            all_return_value += hold_stock.stock_whole_property - hold_stock.stock_cost_property
+            all_stock_property += hold_stock.stock_whole_property
+
+            # 删除count为0的stock
+            if hold_stock.count == 0:
+                to_del_stocks.append(stock_name)
+
+        self.returns = all_return_value / float(self.origin_property)
+        self.property = self.cash + all_stock_property
+
+        # 执行删除
+        for stock_name in to_del_stocks:
+            self.stocks.pop(stock_name)
+
+    def buy(self, stock_name, price, count, update_date):
+        """
+        买入只能更新相关的st, 以及相关st影响到的property, 而不会更新所有的st
+        :param stock_name:
+        :type stock_name: str
+        :param price:
+        :type price: float
+        :param count:
+        :type count: int
+        :param update_date:
+        :type update_date: date
+        :return: 是否成功
+        :rtype: bool
+        """
+        # 创建订单, 不一定会存下来
+        create_order = Order(stock_name, Order.order_type_buy, price, count, update_date)
+
+        # 先判定, 是否能买得起
+        if self.cash < create_order.all_cost:
+            return False
+
+        # 能买的起, 订单加入, cash减去
+        self.order_list.append(create_order)
+        self.cash -= create_order.all_cost
+
+        #  把买入的st加入stocks
+        if stock_name in self.stocks:
+            res = self.stocks.get(stock_name).buy(price, count, update_date)
+        else:
+            stock_info = HoldStock(stock_name)
+            res = stock_info.buy(price, count, update_date)
+            if res:
+                self.stocks[stock_name] = stock_info
+
+        # 买完更新下账户的状态, 当然是partly, 因为不知道其他st的情况
+        if res:
+            self.update_self()
+        return res
+
+    def sell(self, stock_name, price, count, update_date):
+        """
+        卖出只能更新相关的st, 以及相关st影响到的property, 而不会更新所有的st
+        :param stock_name:
+        :type stock_name: str
+        :param price:
+        :type price: float
+        :param count:
+        :type count: int
+        :param update_date:
+        :type update_date: date
+        :return: 是否成功
+        :rtype: bool
+        """
+        # 先判断是否持有这个st, 如果持有, 那么成功与否交给HoldStock去判定就可以
+        if stock_name not in self.stocks:
+            return False
+
+        # 创建订单
+        create_order = Order(stock_name, Order.order_type_sell, price, count, update_date)
+        hold_stock = self.stocks.get(stock_name)
+
+        # 卖出成功了
+        if hold_stock.sell(price, count, update_date):
+            self.order_list.append(create_order)
+            self.cash += create_order.all_cost
+            self.update_self()
+        # 失败
+        else:
+            return False
+
+    def buy_with_cash_percent(self, stock_name, percent, buy_date, buy_time):
+        """
+        按照当前cash的比例买入
+        :param stock_name: 名称
+        :param percent: 比例, 小数, 乘以100之后才是百分比
+        :param buy_date: 日期
+        :param buy_time: 时间
+        :return: 是否成功
+        """
+
+    def sell_with_hold_percent(self, stock_name, percent, buy_date, buy_time):
+        """
+        按照当前持有该st的比例卖出, 100的零头省略掉
+        :param stock_name: 名称
+        :param percent: 比例, 小数, 乘以100之后才是百分比
+        :param buy_date: 日期
+        :param buy_time: 时间
+        :return: 是否成功
+        """
