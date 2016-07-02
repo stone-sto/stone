@@ -378,22 +378,51 @@ class MoneyAccount(object):
         else:
             return False
 
-    def buy_with_cash_percent(self, stock_name, percent, buy_date, buy_time):
+    def buy_with_cash_percent(self, stock_name, price, percent, buy_date):
         """
-        按照当前cash的比例买入
-        :param stock_name: 名称
-        :param percent: 比例, 小数, 乘以100之后才是百分比
-        :param buy_date: 日期
-        :param buy_time: 时间
+        按照A的习惯, count必须是100的整数倍
+        :param stock_name:
+        :type stock_name: str
+        :param price:
+        :type price: float
+        :param percent: 浮点类型, 乘100以后, 才是百分比
+        :type percent: float
+        :param buy_date:
+        :type buy_date: date
         :return: 是否成功
+        :rtype: bool
         """
+        count = self.cash * percent / price / 100 * 100
+        # 小于等于0 提示一下
+        if count <= 0:
+            print 'wwarning : count is 0, no buying'
+            return False
+        return self.buy(stock_name, price, count, buy_date)
 
-    def sell_with_hold_percent(self, stock_name, percent, buy_date, buy_time):
+    def sell_with_hold_percent(self, stock_name, price, percent, sell_date):
         """
-        按照当前持有该st的比例卖出, 100的零头省略掉
-        :param stock_name: 名称
-        :param percent: 比例, 小数, 乘以100之后才是百分比
-        :param buy_date: 日期
-        :param buy_time: 时间
+        :param stock_name:
+        :type stock_name: str
+        :param price:
+        :type price: float
+        :param percent: 浮点类型, 乘100以后, 才是百分比
+        :type percent: float
+        :param sell_date:
+        :type sell_date: date
         :return: 是否成功
+        :rtype: bool
         """
+        # 判读是否已持仓
+        if stock_name not in self.stocks:
+            print 'werror : stock ' + stock_name + ' is not hold'
+            return False
+
+        hold_stock = self.stocks.get(stock_name)
+        count = hold_stock.count * percent / 100 * 100
+
+        # 小于等于0 提示一下
+        if count <= 0:
+            print 'werror : stock ' + stock_name + ' is not sold since the count is 0'
+            return False
+
+        return self.sell(stock_name, price, count, sell_date)
