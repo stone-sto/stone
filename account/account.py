@@ -7,7 +7,7 @@ from datetime import date, datetime, time
 from data.db.db_helper import DBYahooDay
 from data.info import Infos
 from log import time_utils
-from log.time_utils import resolve_date, time_never_used
+from log.time_utils import resolve_date, time_never_used, resolve_time
 
 
 class Order(object):
@@ -48,23 +48,25 @@ class Order(object):
         if deal_time:
             self.time = deal_time
         else:
-            self.time = resolve_date(time_never_used)
+            self.time = resolve_time(time_never_used)
 
-        # st的费用
+        # st的交易价值
         self.stock_cost = price * count
         # 税和手续费
         self.tax = self.all_tax()
         # 总流水
-        self.all_cost = self.stock_cost + self.tax
+        if deal_type == self.order_type_buy:
+            self.all_cost = self.stock_cost + self.tax
+        else:
+            self.all_cost = self.tax
 
     def all_tax(self):
         """
         所有的手续费, 税什么都都包含了
-        :param cost_order: 产生手续费的order
-        :return: 一个float的money
         """
         # 后续需要精确的时候再实现就可以, 现在有个意思一下就行
-        return 10
+        tax_cost = self.stock_cost * 0.0025 + 5
+        return tax_cost if tax_cost > 30 else 30
 
 
 class HoldStock(object):
@@ -246,7 +248,7 @@ class MoneyAccount(object):
     在infos的上层
     """
 
-    def __init__(self, cash, returns):
+    def __init__(self, cash, returns=0.0):
         super(MoneyAccount, self).__init__()
         # 账户中可用的现金
         self.cash = cash
@@ -267,15 +269,15 @@ class MoneyAccount(object):
         """
         更新account情况
         :param stock_line_dict: 数据的字典, 格式{stock_name: stock_line}, 注意, 数据实际上只是一天的, 传进来的时候一定要拼好
-        :type stock_line_dict: dict[str, list]
+        :type stock_line_dict: dict[str, tuple[float|str]]
         """
         for stock_name in self.stocks.keys():
             hold_stock = self.stocks.get(stock_name)
             # 判定数据是不是在, 然后更新
             if stock_name in stock_line_dict:
                 stock_line = stock_line_dict.get(stock_name)
-                hold_stock.update(stock_line[DBYahooDay.line_close_index],
-                                  resolve_date(stock_line[DBYahooDay.line_date_index]))
+                hold_stock.update(stock_line[0],
+                                  resolve_date(stock_line[1]))
             else:
                 print 'werror : stock_line_dict is not enough, may cause something error.'
 
@@ -289,20 +291,18 @@ class MoneyAccount(object):
         """
         # 更新完st, 更新自己
         # 计算return和property
-        all_return_value = 0
         all_stock_property = 0
         to_del_stocks = []
         for stock_name in self.stocks.keys():
             hold_stock = self.stocks.get(stock_name)
-            all_return_value += hold_stock.stock_whole_property - hold_stock.stock_cost_property
             all_stock_property += hold_stock.stock_whole_property
 
             # 删除count为0的stock
             if hold_stock.count == 0:
                 to_del_stocks.append(stock_name)
 
-        self.returns = all_return_value / float(self.origin_property)
         self.property = self.cash + all_stock_property
+        self.returns = (self.property - self.origin_property) / float(self.origin_property)
 
         # 执行删除
         for stock_name in to_del_stocks:
@@ -372,7 +372,7 @@ class MoneyAccount(object):
         # 卖出成功了
         if hold_stock.sell(price, count, update_date):
             self.order_list.append(create_order)
-            self.cash += create_order.all_cost
+            self.cash += create_order.stock_cost - create_order.tax
             self.update_self()
         # 失败
         else:
@@ -392,7 +392,7 @@ class MoneyAccount(object):
         :return: 是否成功
         :rtype: bool
         """
-        count = self.cash * percent / price / 100 * 100
+        count = int(self.cash * percent / price / 100) * 100
         # 小于等于0 提示一下
         if count <= 0:
             print 'wwarning : count is 0, no buying'
@@ -418,7 +418,7 @@ class MoneyAccount(object):
             return False
 
         hold_stock = self.stocks.get(stock_name)
-        count = hold_stock.count * percent / 100 * 100
+        count = int(hold_stock.count * percent / 100) * 100
 
         # 小于等于0 提示一下
         if count <= 0:

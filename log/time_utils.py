@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from datetime import datetime, date
+from datetime import datetime, date, time
 
 # 基本的日期,时间格式
 time_format = '%H:%M:%S'
@@ -21,3 +21,14 @@ def resolve_date(date_str):
     :rtype: date
     """
     return datetime.strptime(date_str, date_format).date()
+
+
+def resolve_time(time_str):
+    """
+    从一个str中获取time
+    :param time_str:
+    :type time_str: str
+    :return: time
+    :rtype: time
+    """
+    return datetime.strptime(time_str, time_format).time()
