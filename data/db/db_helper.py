@@ -328,16 +328,16 @@ class DBYahooDay(DBBase):
         line_divider: 10
     }
 
-    line_id_index = 0,
-    line_date_index = 1,
-    line_open_index = 2,
-    line_high_index = 3,
-    line_low_index = 4,
-    line_close_index = 5,
-    line_volume_index = 6,
-    line_adj_close_index = 7,
-    line_percent_index = 8,
-    line_point_index = 9,
+    line_id_index = 0
+    line_date_index = 1
+    line_open_index = 2
+    line_high_index = 3
+    line_low_index = 4
+    line_close_index = 5
+    line_volume_index = 6
+    line_adj_close_index = 7
+    line_percent_index = 8
+    line_point_index = 9
     line_divider_index = 10
 
     def __init__(self):
