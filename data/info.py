@@ -5,20 +5,7 @@
 from datetime import date, time
 
 from data.db.db_helper import DBYahooDay
-
-
-def average(source_list):
-    """
-    求平均数
-    :param source_list:
-    :type source_list: list
-    :return:
-    :rtype: float
-    """
-    if len(source_list) > 0:
-        return float(sum(source_list)) / len(source_list)
-    else:
-        return 0.0
+from data.info_utils import average
 
 
 class Infos(object):

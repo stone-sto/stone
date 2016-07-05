@@ -29,9 +29,9 @@ class Order(object):
         :param count:
         :type count: int
         :param deal_date:
-        :type deal_date:date
+        :type deal_date:str
         :param deal_time:
-        :type deal_time: time
+        :type deal_time: str
         """
         super(Order, self).__init__()
         # st名称
@@ -48,7 +48,7 @@ class Order(object):
         if deal_time:
             self.time = deal_time
         else:
-            self.time = resolve_time(time_never_used)
+            self.time = time_never_used
 
         # st的交易价值
         self.stock_cost = price * count
@@ -59,6 +59,11 @@ class Order(object):
             self.all_cost = self.stock_cost + self.tax
         else:
             self.all_cost = self.tax
+
+    def __str__(self):
+        return '\nstock name: %s\ntype: %s\nprice: %f\ncount:%d\ndate:%s\nall cost: %f\ntax: %f\n' % (
+            self.stock_name, 'buy' if self.type == 0 else 'sell', self.price, self.count, self.date, self.all_cost,
+            self.tax)
 
     def all_tax(self):
         """
@@ -95,9 +100,14 @@ class HoldStock(object):
         # 可以卖出的数量
         self.avail_count = 0
         # 当前日期, 初始化随便选择一个历史日期
-        self.cur_date = datetime.strptime('1971-01-01 12:12:12', time_utils.datetime_format).date()
+        self.cur_date = '1971-01-01 12:12:12'
         # 当前持仓的总收益, 去除已经卖出的部分, 因为已经结算到cash中了, 规则: cur_price / cost_price - 1
         self.return_percent = 0
+
+    def __str__(self):
+        return '\nstock name: %s\ncost price: %f\ncur price: %f\ncount: %d\ncur date: %s\nreturns : %f' % (
+            self.name, self.cost_price, self.cur_price, self.count, self.cur_date, self.return_percent
+        )
 
     def __eq__(self, other):
         """
@@ -123,17 +133,19 @@ class HoldStock(object):
         """
         return self.cost_price * self.count
 
-    def update_avail_by_date(self, update_date):
+    def update_avail_by_date(self, update_date_str):
         """
         根据时间更新avail
-        :param update_date: 日期
-        :type update_date: date
+        :param update_date_str: 日期
+        :type update_date_str: str
         """
         # 更新avail信息
-        for key_date in self.unavail_stock_count_dict.keys():
+        for key in self.unavail_stock_count_dict.keys():
+            key_date = resolve_date(key)
+            update_date = resolve_date(update_date_str)
             if (update_date - key_date).days >= self.t_plus:
-                self.avail_count += self.unavail_stock_count_dict.get(key_date)
-                self.unavail_stock_count_dict.pop(key_date)
+                self.avail_count += self.unavail_stock_count_dict.get(key)
+                self.unavail_stock_count_dict.pop(key)
 
     def refresh_returns(self):
         """
@@ -151,7 +163,7 @@ class HoldStock(object):
         :param price: st的当前价格
         :type price: float
         :param update_date: 当前日期
-        :type update_date: date
+        :type update_date: str
         """
         # 如果日期是过去的时间, 更新无效
         if update_date < self.cur_date:
@@ -174,7 +186,7 @@ class HoldStock(object):
         :param count: 数量
         :type count: int
         :param update_date: 日期
-        :type update_date: date
+        :type update_date: str
         :return: 是否成功
         :rtype: bool
         """
@@ -211,7 +223,7 @@ class HoldStock(object):
         :param count: 数量
         :type count: int
         :param update_date: 日期
-        :type update_date:date
+        :type update_date:str
         :return: 是否成功
         :rtype: bool
         """
@@ -265,10 +277,19 @@ class MoneyAccount(object):
         self.order_list = []
         """:type: list[Order]"""
 
+    def __str__(self):
+        order_list_str = ''
+        for order in self.order_list:
+            order_list_str += str(order) + '\n'
+        return '==================================' + \
+               '\ncash: %f\n returns: %f\n property: %f\n origin property: %f\nhold stocks: %s\norder list: %s\n' % (
+                   self.cash, self.returns, self.property, self.origin_property, str(self.stocks), order_list_str
+               ) + '=================================='
+
     def update_with_all_stock_one_line(self, stock_line_dict):
         """
         更新account情况
-        :param stock_line_dict: 数据的字典, 格式{stock_name: stock_line}, 注意, 数据实际上只是一天的, 传进来的时候一定要拼好
+        :param stock_line_dict: 数据的字典, 格式{stock_name: (stock_price, update_date)}, 注意, 数据实际上只是一天的, 传进来的时候一定要拼好
         :type stock_line_dict: dict[str, tuple[float|str]]
         """
         for stock_name in self.stocks.keys():
@@ -276,8 +297,7 @@ class MoneyAccount(object):
             # 判定数据是不是在, 然后更新
             if stock_name in stock_line_dict:
                 stock_line = stock_line_dict.get(stock_name)
-                hold_stock.update(stock_line[0],
-                                  resolve_date(stock_line[1]))
+                hold_stock.update(stock_line[0], stock_line[1])
             else:
                 print 'werror : stock_line_dict is not enough, may cause something error.'
 
@@ -318,7 +338,7 @@ class MoneyAccount(object):
         :param count:
         :type count: int
         :param update_date:
-        :type update_date: date
+        :type update_date: str
         :return: 是否成功
         :rtype: bool
         """
@@ -357,7 +377,7 @@ class MoneyAccount(object):
         :param count:
         :type count: int
         :param update_date:
-        :type update_date: date
+        :type update_date: str
         :return: 是否成功
         :rtype: bool
         """
@@ -388,7 +408,7 @@ class MoneyAccount(object):
         :param percent: 浮点类型, 乘100以后, 才是百分比
         :type percent: float
         :param buy_date:
-        :type buy_date: date
+        :type buy_date: str
         :return: 是否成功
         :rtype: bool
         """
@@ -408,7 +428,7 @@ class MoneyAccount(object):
         :param percent: 浮点类型, 乘100以后, 才是百分比
         :type percent: float
         :param sell_date:
-        :type sell_date: date
+        :type sell_date: str
         :return: 是否成功
         :rtype: bool
         """
@@ -426,3 +446,33 @@ class MoneyAccount(object):
             return False
 
         return self.sell(stock_name, price, count, sell_date)
+
+    def buy_with_cash_percent_with_line(self, stock_name, percent, stock_line):
+        """
+        使用yahoo的stock_line的close 来买
+        :param percent:
+        :type percent: float
+        :param stock_name:
+        :type stock_name: str
+        :param stock_line:
+        :type stock_line: list
+        :return:
+        :rtype: bool
+        """
+        return self.buy_with_cash_percent(stock_name, stock_line[DBYahooDay.line_close_index], percent,
+                                          stock_line[DBYahooDay.line_date_index])
+
+    def sell_with_hold_percent_with_line(self, stock_name, percent, stock_line):
+        """
+        使用yahoo的stock_line的close 来卖
+        :param stock_name:
+        :type stock_name: str
+        :param percent:
+        :type percent: float
+        :param stock_line:
+        :type stock_line: list
+        :return:
+        :rtype: bool
+        """
+        return self.sell_with_hold_percent(stock_name, stock_line[DBYahooDay.line_close_index], percent,
+                                           stock_line[DBYahooDay.line_date_index])
