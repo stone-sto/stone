@@ -33,7 +33,8 @@ def simple_ma(stock_name, n=5, m=10):
         money_account = MoneyAccount(100000)
 
         # 关于作图
-        chart_title = stock_lines[0][DBYahooDay.line_date_index] + '-' + stock_lines[-1][DBYahooDay.line_date_index]
+        chart_title = stock_name + '-' + stock_lines[0][DBYahooDay.line_date_index] + '-' + stock_lines[-1][
+            DBYahooDay.line_date_index]
         chart_values_n = list()
         chart_values_m = list()
         chart_price = list()
@@ -41,7 +42,7 @@ def simple_ma(stock_name, n=5, m=10):
         chart_grid_names = list()
 
         # account的初始值, 必须与price相等, 所以这里记录转换的比例
-        trans_percent = stock_lines[m-1][DBYahooDay.line_close_index] / money_account.property
+        trans_percent = stock_lines[m - 1][DBYahooDay.line_close_index] / money_account.property
         for index in range(m - 1, len(stock_lines)):
 
             # 各种临时变量
