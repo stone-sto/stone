@@ -113,6 +113,8 @@ def simple_ma(stock_name, tag_name, n=5, m=10):
         chart_grid_names = list()
 
         # account的初始值, 必须与price相等, 所以这里记录转换的比例
+        if len(stock_lines) < m:
+            continue
         trans_percent = stock_lines[m - 1][DBYahooDay.line_close_index] / money_account.property
         for index in range(m - 1, len(stock_lines)):
 
