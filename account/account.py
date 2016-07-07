@@ -70,8 +70,16 @@ class Order(object):
         所有的手续费, 税什么都都包含了
         """
         # 后续需要精确的时候再实现就可以, 现在有个意思一下就行
-        tax_cost = self.stock_cost * 0.0025 + 5
-        return tax_cost if tax_cost > 30 else 30
+        total = 0
+        # 如果是卖, 手续费千一
+        if self.type == self.order_type_sell:
+            total += self.stock_cost * 0.001
+        # 过户费, 上证有, 暂时认为都有
+        total += 6
+        # 手续费, 按照佣金宝来, 万分二点五0.00025
+        cost = self.stock_cost * 0.00025
+        total += (cost if cost > 5 else 5)
+        return total
 
 
 class HoldStock(object):
