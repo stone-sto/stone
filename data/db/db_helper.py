@@ -468,6 +468,26 @@ class DBYahooDay(DBBase):
             'update %s set %s=%f,%s=%d where %s="%s"' % (
                 stock_name, self.line_percent, percent, self.line_divider, divider, self.line_date, date))
 
+    def do_clean_datas(self):
+        """
+        对日数据进行clean, close price 为0, 干掉, 成交量为0, 干掉(排除指数)
+        """
+        tem_list = ['s000001_ss', 's399001_sz', 's399006_sz']
+        stock_names = self.select_all_stock_names()
+        for stock_name in stock_names:
+
+            print stock_name
+
+            # 如果是指数, 不处理
+            if stock_name in tem_list:
+                continue
+
+            # 删除
+            self.open()
+            self.cursor.execute('delete from %s where %s = 0 or %s=0' % (stock_name, self.line_close, self.line_volume))
+            self.connection.commit()
+            self.close()
+
     def update_target_date_point(self, stock_name, date, point):
         """
         修改指定st的point
@@ -600,9 +620,14 @@ class DBYahooDay(DBBase):
 
 if __name__ == '__main__':
     pass
-    # 删除某一日期的数据
+
+    # 对日数据进行一次clean
     yahoo_db = DBYahooDay()
-    yahoo_db.del_target_date_lines('2016-06-28')
+    yahoo_db.do_clean_datas()
+
+    # 删除某一日期的数据
+    # yahoo_db = DBYahooDay()
+    # yahoo_db.del_target_date_lines('2016-06-28')
     # 创建所有分钟的数据表
     # sina_db = DBSinaMinute(2015)
     # sina_db.clean_minute_date()
