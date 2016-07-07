@@ -2,7 +2,41 @@
 
 # 一般的模拟流程,
 # 有两种事件: 1. 时间更新, 刷新各个系统中的数据, info中的数据可以懒惰更新. 2. 买入/卖出操作, 更新各个系统中的数据.
+from account.account import MoneyAccount
 from data.info import Infos
+from data.info_utils import all_stock_and_clean_day_lines
+
+
+class SimuOneStock(object):
+    """
+    按照固定模式, simu一个st
+    流程:
+    1. 准备好数据, 按照数据迭代
+    2. 设置好表格, 账户,
+    """
+    def __init__(self, stock_name, al_name):
+        """
+        :param stock_name:
+        :type stock_name: str
+        :param al_name: 算法名称
+        :type al_name: str
+        """
+        super(SimuOneStock, self).__init__()
+        self.stock_name = stock_name
+
+    def start(self):
+        stock_lines_group = all_stock_and_clean_day_lines(self.stock_name)
+        for stock_lines in stock_lines_group:
+            self.loop_for_one_group(stock_lines)
+
+    def loop_for_one_group(self, stock_lines):
+        """
+        :param stock_lines: st的一个分组
+        :type stock_lines: list
+        """
+        self.money_account = MoneyAccount(100000)
+
+
 
 
 class SimuStOneByOne(object):
