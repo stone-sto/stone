@@ -203,6 +203,8 @@ def win_percent_ma(stock_name, tag_name, n=10, m=20, win_percent=0.05):
         chart_grid_names = list()
 
         # account的初始值, 必须与price相等, 所以这里记录转换的比例
+        if len(stock_lines) < m:
+            continue
         trans_percent = stock_lines[m - 1][DBYahooDay.line_close_index] / money_account.property
         for index in range(m - 1, len(stock_lines)):
 
@@ -222,7 +224,7 @@ def win_percent_ma(stock_name, tag_name, n=10, m=20, win_percent=0.05):
                 if value_m >= value_n:
                     # if not buy, then buy
                     if stock_name in money_account.stocks and money_account.stocks[
-                        stock_name].return_percent >= win_percent:
+                            stock_name].return_percent >= win_percent:
                         money_account.sell_with_hold_percent_with_line(stock_name, 1.0, stock_lines[index])
                     state = 1
             elif state == 1:
