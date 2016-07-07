@@ -35,12 +35,9 @@ def start_simple_ma(n=5, m=10):
     for stock_name in stock_names:
         res = simple_ma(stock_name, tag_name, n, m)
         group_count += res[0]
-        if res[1] > 0:
-            win_count += 1
-        if res[1] > 1:
-            win_1_count += 1
-        if res[1] > 2:
-            win_2_count += 1
+        win_count += res[1]
+        win_1_count += res[2]
+        win_2_count += res[3]
 
     res_str = 'result: \n>0: %f\n>1: %f\n>2:%f\n' % (
         float(win_count) / group_count, float(win_1_count) / group_count, float(win_2_count) / group_count)
@@ -67,12 +64,9 @@ def start_win_percent_ma(n=5, m=10, win_percent=0.05):
     for stock_name in stock_names:
         res = win_percent_ma(stock_name, tag_name, n, m, win_percent)
         group_count += res[0]
-        if res[1] > 0:
-            win_count += 1
-        if res[1] > 1:
-            win_1_count += 1
-        if res[1] > 2:
-            win_2_count += 1
+        win_count += res[1]
+        win_1_count += res[2]
+        win_2_count += res[3]
 
     res_str = 'result: \n>0: %f\n>1: %f\n>2:%f\n' % (
         float(win_count) / group_count, float(win_1_count) / group_count, float(win_2_count) / group_count)
@@ -97,6 +91,8 @@ def simple_ma(stock_name, tag_name, n=5, m=10):
     if not os.path.exists(chart_dir_path):
         os.system('mkdir -p "' + chart_dir_path + '"')
     win_count = 0
+    win_1_count = 0
+    win_2_count = 0
     for stock_lines in stock_lines_group:
 
         # 表示当前的n和m的状态, 0 n 上 1 m 上
@@ -160,8 +156,12 @@ def simple_ma(stock_name, tag_name, n=5, m=10):
 
         if money_account.returns > 0:
             win_count += 1
+        if money_account.returns > 1:
+            win_1_count += 1
+        if money_account.returns > 2:
+            win_2_count += 1
 
-    return len(stock_lines_group), win_count
+    return len(stock_lines_group), win_count, win_1_count, win_2_count
 
 
 def win_percent_ma(stock_name, tag_name, n=10, m=20, win_percent=0.05):
@@ -185,6 +185,8 @@ def win_percent_ma(stock_name, tag_name, n=10, m=20, win_percent=0.05):
         os.system('mkdir -p "' + chart_dir_path + '"')
 
     win_count = 0
+    win_1_count = 0
+    win_2_count = 0
     for stock_lines in stock_lines_group:
 
         # 表示当前的n和m的状态, 0 n 上 1 m 上
@@ -247,8 +249,12 @@ def win_percent_ma(stock_name, tag_name, n=10, m=20, win_percent=0.05):
 
         if money_account.returns > 0:
             win_count += 1
+        if money_account.returns > 1:
+            win_1_count += 1
+        if money_account.returns > 2:
+            win_2_count += 1
 
-    return len(stock_lines_group), win_count
+    return len(stock_lines_group), win_count, win_1_count, win_2_count
 
 
 if __name__ == '__main__':
