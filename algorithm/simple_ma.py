@@ -14,7 +14,7 @@ from simu_base import SimuStOneByOne
 # 按照规则, 多仓位, 指定盈利百分比买卖, multi_opt_win_percent_ma
 
 
-def simple_ma(stock_name, n=5, m=10):
+def simple_ma(stock_name, n=10, m=20):
     """
     简单的基于ma, 5 10
     :param n: 均值中比较小的周期
