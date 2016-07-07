@@ -1,9 +1,12 @@
 #! -*- encoding:utf-8 -*-
+import os
+
 from account.account import MoneyAccount
 from chart.chart_utils import draw_line_chart, default_colors
 from data.db.db_helper import DBYahooDay
 from data.info import Infos
 from data.info_utils import all_stock_and_clean_day_lines, resolve_ma
+from log.log_utils import log_by_time, log_with_filename
 from simu_base import SimuStOneByOne
 
 
@@ -25,7 +28,10 @@ def simple_ma(stock_name, n=10, m=20):
     :type stock_name:str
     """
     stock_lines_group = all_stock_and_clean_day_lines(stock_name)
-    print len(stock_lines_group)
+    chart_dir_name = 'simple_ma_%d_%d' % (n, m)
+    chart_dir_path = os.path.join(os.path.dirname(__file__), '../result', chart_dir_name)
+    if not os.path.exists(chart_dir_path):
+        os.system('mkdir -p "' + chart_dir_path + '"')
     for stock_lines in stock_lines_group:
 
         # 表示当前的n和m的状态, 0 n 上 1 m 上
@@ -78,10 +84,12 @@ def simple_ma(stock_name, n=10, m=20):
             money_account.update_with_all_stock_one_line({stock_name: (cur_price, cur_date)})
             chart_account_property.append(money_account.property * trans_percent)
 
+        print 'chart path' + chart_dir_path
         draw_line_chart(chart_grid_names, [chart_price, chart_values_n, chart_values_m, chart_account_property],
-                        ['price', 'ma5', 'ma10', 'account'], default_colors[0:4], chart_title)
+                        ['price', 'ma5', 'ma10', 'account'], default_colors[0:4], chart_title,
+                        output_dir=chart_dir_path)
 
-        print money_account
+        log_with_filename(chart_dir_name, money_account)
 
 
 if __name__ == '__main__':

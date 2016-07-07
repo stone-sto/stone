@@ -25,3 +25,17 @@ def log_by_time(t_target_str):
     根据时间，每天产生一份日志
     """
     date_logger.info(t_target_str)
+
+
+def log_with_filename(filename, content):
+    """
+    :param content: 内容, 自动转成str
+    :type content:
+    :param filename: 文件名, 默认保存在record下面
+    :type filename: str
+    """
+    log_file_path = os.path.join(os.path.dirname(__file__), '../record/', filename + '.log')
+    file_loger = logging.getLogger('filename' + filename)
+    file_handler = logging.FileHandler(log_file_path)
+    file_loger.addHandler(file_handler)
+    file_loger.info(str(content))
