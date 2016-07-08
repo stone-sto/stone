@@ -1,5 +1,7 @@
 # encoding:utf-8
 
+from account.account import MoneyAccount
+
 
 def cal_return_level(returns, days):
     """
@@ -36,3 +38,16 @@ def cal_return_level(returns, days):
         return 1
 
     return 0
+
+
+def cal_return_level_with_account(account, days):
+    """
+    计算算法结果
+    :param account: 账户信息
+    :type account: MoneyAccount
+    :param days: 天数
+    :type days: int
+    :return: 收益层级
+    :rtype: int
+    """
+    return cal_return_level(account.returns, days)

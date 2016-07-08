@@ -443,20 +443,47 @@ class DBYahooDay(DBBase):
             self.stock_name_name, self.table_stock_name, self.stock_name_name, stock_name))
         return not len(res.fetchall()) == 0
 
-    def select_stock_all_lines(self, stock_name, order=0):
+    def select_stock_all_lines(self, stock_name, order=0, need_open=False):
         """
         查询st的所有行, 需要手动打开数据库
+        :param need_open: 是否需要打开数据库
+        :type need_open: bool
         :param stock_name: 名称
         :param order:   是否排序 0 asc 1 desc
         :return: st line list
         """
+        if need_open:
+            self.open()
         sql_str = 'select * from ' + stock_name
         if order == 0:
             sql_str += ' order by date'
         elif order == 1:
             sql_str += ' order by date desc'
 
-        return self.cursor.execute(sql_str).fetchall()
+        res = self.cursor.execute(sql_str).fetchall()
+        if need_open:
+            self.close()
+
+        return res
+
+    def select_period_lines(self, stock_name, start_date, end_date):
+        """
+        查询st指定时间段的所有行
+        :param stock_name:
+        :type stock_name: str
+        :param start_date:
+        :type start_date: date
+        :param end_date:
+        :type end_date: str
+        :return:
+        :rtype: list
+        """
+        self.open()
+        sql_str = 'select * from %s where %s >= "%s" and %s <= "%s" order by %s' % (
+            stock_name, self.line_date, start_date, self.line_date, end_date, self.line_date)
+        res = self.cursor.execute(sql_str).fetchall()
+        self.close()
+        return res
 
     def update_target_date_percent_and_divider(self, stock_name, date, percent, divider):
         """

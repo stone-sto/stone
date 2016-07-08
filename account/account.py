@@ -289,9 +289,12 @@ class MoneyAccount(object):
         order_list_str = ''
         for order in self.order_list:
             order_list_str += str(order) + '\n'
+        hold_stocks_str = ''
+        for hold_stock in self.stocks:
+            hold_stocks_str += str(hold_stock) + '\n'
         return '==================================' + \
                '\ncash: %f\n returns: %f\n property: %f\n origin property: %f\nhold stocks: %s\norder list: %s\n' % (
-                   self.cash, self.returns, self.property, self.origin_property, str(self.stocks), order_list_str
+                   self.cash, self.returns, self.property, self.origin_property, hold_stocks_str, order_list_str
                ) + '=================================='
 
     def update_with_all_stock_one_line(self, stock_line_dict):
