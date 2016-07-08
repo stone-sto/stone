@@ -68,7 +68,7 @@ def ma(ma_type, stock_name, repo_count=3, down_buy_percent=0.05, win_percent=0.0
 
         # 账户, 默认100000, 以后有需要可以改, 变量
         state = -1
-        money_account = MoneyAccount(100000)
+        money_account = MoneyAccount(100000.0)
 
         # 作图相关
         start_date = stock_lines[0][DBYahooDay.line_date_index]

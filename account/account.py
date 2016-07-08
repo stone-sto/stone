@@ -268,7 +268,15 @@ class MoneyAccount(object):
     在infos的上层
     """
 
-    def __init__(self, cash, returns=0.0):
+    def __init__(self, cash, returns=0.0, repo_count=1):
+        """
+        :param cash: 本金
+        :type cash: float
+        :param returns: 废弃掉
+        :type returns: float
+        :param repo_count:买的时候, 分成的仓位数量
+        :type repo_count:int
+        """
         super(MoneyAccount, self).__init__()
         # 账户中可用的现金
         self.cash = cash
@@ -284,6 +292,13 @@ class MoneyAccount(object):
         # 订单的全部信息, 暂时还没想到订单除了能用来做结果展示和debug, 还有其他的什么用
         self.order_list = []
         """:type: list[Order]"""
+        # 买卖使用的总份数, 是个常量, 买卖的时候不会发生改变
+        self.repo_count = repo_count
+        # 剩余的份数, 份数相关的必须使用buy_with_repo和sell_with_repo才会生效
+        self.cur_repo_left = repo_count
+        # 当前st对应的份数, 加和总数 + 剩余份数 = 总份数
+        self.stock_repos = dict()
+        """:type: dict[str, int]"""
 
     def __str__(self):
         order_list_str = ''
@@ -405,6 +420,7 @@ class MoneyAccount(object):
             self.order_list.append(create_order)
             self.cash += create_order.stock_cost - create_order.tax
             self.update_self()
+            return True
         # 失败
         else:
             return False
@@ -487,3 +503,72 @@ class MoneyAccount(object):
         """
         return self.sell_with_hold_percent(stock_name, stock_line[DBYahooDay.line_close_index], percent,
                                            stock_line[DBYahooDay.line_date_index])
+
+    def buy_with_repos(self, stock_name, price, buy_date, repo_count=1):
+        """
+        使用份数的方式来买
+        :param buy_date:
+        :type buy_date: str
+        :param stock_name:
+        :type stock_name: str
+        :param price:
+        :type price: float
+        :param repo_count: 使用的份数
+        :type repo_count: int
+        :return:
+        :rtype: bool
+        """
+        # 已经全仓
+        if self.cur_repo_left == 0:
+            return False
+
+        # 如果不够买, 就全部花掉
+        if self.cur_repo_left < repo_count:
+            repo_count = self.cur_repo_left
+
+        buy_res = self.buy_with_cash_percent(stock_name, price, float(repo_count) / self.cur_repo_left, buy_date)
+
+        # 如果成功, 更新repo的相关状态
+        if buy_res:
+            self.cur_repo_left -= repo_count
+            if stock_name in self.stock_repos:
+                self.stock_repos[stock_name] += repo_count
+            else:
+                self.stock_repos[stock_name] = repo_count
+
+        return buy_res
+
+    def sell_with_repos(self, stock_name, price, sell_date, repo_count=1):
+        """
+        使用份数的方式来卖
+        :param stock_name:
+        :type stock_name:str
+        :param price:
+        :type price: float
+        :param sell_date:
+        :type sell_date: str
+        :param repo_count:
+        :type repo_count: int
+        :return:
+        :rtype: bool
+        """
+        # 当前未持有这个st
+        if stock_name not in self.stock_repos:
+            return False
+
+        # 如果不够卖, 就全部卖掉
+        if self.stock_repos.get(stock_name) < repo_count:
+            repo_count = self.stock_repos.get(stock_name)
+
+        sell_res = self.sell_with_hold_percent(stock_name, price, float(repo_count) / self.stock_repos.get(stock_name),
+                                               sell_date)
+        # 如果卖出成功, 更新各个repo状态
+        if sell_res:
+            self.cur_repo_left += repo_count
+            self.stock_repos[stock_name] -= repo_count
+
+            # 如果已经不再持有, 就清掉
+            if self.stock_repos[stock_name] == 0:
+                self.stock_repos.pop(stock_name)
+
+        return sell_res
