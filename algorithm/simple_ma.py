@@ -68,7 +68,7 @@ def ma(ma_type, stock_name, repo_count=3, down_buy_percent=0.05, win_percent=0.0
 
         # 账户, 默认100000, 以后有需要可以改, 变量
         state = -1
-        money_account = MoneyAccount(100000.0)
+        money_account = MoneyAccount(100000.0, repo_count)
 
         # 作图相关
         start_date = stock_lines[0][DBYahooDay.line_date_index]
@@ -131,6 +131,7 @@ def ma(ma_type, stock_name, repo_count=3, down_buy_percent=0.05, win_percent=0.0
                 money_account.update_with_all_stock_one_line({stock_name: (cur_price, cur_date)})
 
             elif ma_type == 1:
+                # 感觉没有任何意义, 不写了
                 pass
             elif ma_type == 2:
 
@@ -158,7 +159,41 @@ def ma(ma_type, stock_name, repo_count=3, down_buy_percent=0.05, win_percent=0.0
                     stock_name].return_percent >= win_percent:
                     money_account.sell_with_hold_percent_with_line(stock_name, 1.0, stock_lines[index])
             elif ma_type == 3:
-                pass
+
+                stock_line = stock_lines[index]
+                if state == 0:
+                    if value_m >= value_n:
+                        state = 1
+                elif state == 1:
+                    if value_n >= value_m:
+                        # 出现向上交叉, 买入
+                        if stock_name not in money_account.stocks:
+                            money_account.buy_with_repos(stock_name, stock_line[DBYahooDay.line_close_index],
+                                                         stock_line[DBYahooDay.line_date_index], 1)
+                        state = 0
+                else:
+                    if value_m >= value_n:
+                        state = 1
+                    else:
+                        state = 0
+
+                # 更新下account的状态
+                money_account.update_with_all_stock_one_line({stock_name: (cur_price, cur_date)})
+
+                #  随时准备补仓和卖出
+                # sell
+                if stock_name in money_account.stocks:
+                    # 到达盈利标准
+                    if money_account.stocks[stock_name].return_percent >= win_percent / money_account.stock_repos[
+                        stock_name]:
+                        # 全部卖掉
+                        money_account.sell_with_repos(stock_name, stock_line[DBYahooDay.line_close_index],
+                                                      stock_line[DBYahooDay.line_date_index],
+                                                      money_account.stock_repos[stock_name])
+                    elif money_account.stocks[stock_name].return_percent < down_buy_percent:
+                        # 买入一份
+                        money_account.buy_with_repos(stock_name, stock_line[DBYahooDay.line_close_index],
+                                                     stock_line[DBYahooDay.line_date_index], 1)
 
             # accout的价值加入图表变量中
             chart_account_property.append(money_account.property * trans_percent)
@@ -203,9 +238,15 @@ def start_simple_ma(n=5, m=10):
     log_with_filename(tag_name, res_str)
 
 
-def start_win_percent_ma(n=5, m=10, win_percent=0.05):
+def start_ma(ma_type, repo_count=3, down_buy_percent=0.05, win_percent=0.05, n=5, m=10):
     """
     带统计, log输出的封装
+    :param down_buy_percent: 下跌补仓的百分比, 补仓条件 down_buy_percent/持有份数 + down_buy_percent
+    :type down_buy_percent:
+    :param repo_count:
+    :type repo_count:
+    :param ma_type:
+    :type ma_type:
     :param win_percent:
     :type win_percent:
     :param n:
@@ -224,7 +265,8 @@ def start_win_percent_ma(n=5, m=10, win_percent=0.05):
     count = 0
     tag_name = ''
     for stock_name in stock_names:
-        tag_name, res_group = ma(2, stock_name, n=n, m=m, win_percent=win_percent)
+        tag_name, res_group = ma(ma_type, stock_name, n=n, m=m, win_percent=win_percent, repo_count=repo_count,
+                                 down_buy_percent=down_buy_percent)
         for res in res_group:
             res_level = cal_return_level_with_account(res[0], res[1])
             print res[0].returns
@@ -436,6 +478,25 @@ def win_percent_ma(stock_name, tag_name, n=10, m=20, win_percent=0.05):
 
 if __name__ == '__main__':
     # start_win_percent_ma(5, 10, 0.05)
-    start_win_percent_ma(10, 20, 0.05)
+    # repo 3 5
+    # win 0.05 0.1
+    # down 0.05 0.1
+    # n, m 5,10 10,20
+    start_ma(3, repo_count=3, win_percent=0.05, down_buy_percent=0.05, n=5, m=10)
+
+    start_ma(3, repo_count=3, win_percent=0.05, down_buy_percent=0.05, n=10, m=20)
+
+    start_ma(3, repo_count=3, win_percent=0.05, down_buy_percent=0.1, n=5, m=10)
+
+    start_ma(3, repo_count=3, win_percent=0.05, down_buy_percent=0.1, n=10, m=20)
+
+    start_ma(3, repo_count=3, win_percent=0.1, down_buy_percent=0.05, n=5, m=10)
+
+    start_ma(3, repo_count=3, win_percent=0.1, down_buy_percent=0.05, n=10, m=20)
+
+    start_ma(3, repo_count=3, win_percent=0.1, down_buy_percent=0.1, n=5, m=10)
+
+    start_ma(3, repo_count=3, win_percent=0.1, down_buy_percent=0.1, n=10, m=20)
+
     # start_win_percent_ma(5, 10, 0.1)
     # start_win_percent_ma(10, 20, 0.1)

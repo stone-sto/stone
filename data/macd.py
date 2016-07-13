@@ -17,6 +17,17 @@ def ema_n(pre_ema_n, close_price, n):
 
 
 def diff(pre_ema_12, pre_ema_26, close_price):
+    """
+    计算diff
+    :param pre_ema_12: 前一天的ema12
+    :type pre_ema_12: float
+    :param pre_ema_26: 前一天的ema26
+    :type pre_ema_26: float
+    :param close_price:
+    :type close_price: float
+    :return:
+    :rtype: float
+    """
     return ema_n(pre_ema_12, close_price, 12) - ema_n(pre_ema_26, close_price, 26)
 
 

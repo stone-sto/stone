@@ -29,6 +29,7 @@ c.addLegend(50, 30, 0, "arialbd.ttf", 9).setBackground(Transparent)
 # Add a title box to the chart using 15pt Times Bold Italic font, on a light blue (CCCCFF)
 # background with glass effect. white (0xffffff) on a dark red (0x800000) background, with a 1 pixel
 # 3D border.
+
 c.addTitle("Application Server Throughput", "timesbi.ttf", 15).setBackground(0xccccff, 0x000000,
     glassEffect())
 
@@ -57,4 +58,14 @@ layer.addDataSet(data1, 0x008800, "Server #2")
 layer.addDataSet(data2, c.dashLineColor(0x3333ff, DashLine), "Server #3")
 
 # Output the chart
+c.makeChart("multiline.png")
+
+print c.getYCoor(100)
+print c.getYCoor(80)
+print c.getYCoor(60)
+
+print c.getXCoor('3')
+
+c.addText(c.getXCoor('6'), c.getYCoor(80), 'B', "timesbi.ttf", 11, 0xc09090).setAlignment(TopRight)
+
 c.makeChart("multiline.png")

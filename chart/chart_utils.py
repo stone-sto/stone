@@ -8,11 +8,17 @@ default_path = '/Users/wgx/workspace/python/stone/1v_stone/result'
 # 不同颜色, 画线的时候直接用就行, 先准备5个, 以后不够再加
 default_colors = [0xff0000, 0x008800, 0x3333ff, 0x1ad145, 0xff9500]
 
+# 买入和卖出标记的颜色, 买入, 蓝色, 卖出, 红色
+buy_color = 0x478fe0
+sell_color = 0xff5656
+
 
 def draw_line_chart(horizontal_grid_name, values, line_names, line_colors, title, horizontal_name='', vertical_name='',
-                    output_dir=None):
+                    output_dir=None, opt_points=None):
     """
     画折线图
+    :param opt_points: 操作的位置, 买入画B, 卖出画S, 坐标单位必须是horizontal_grid_name, values[0], type
+    :type opt_points: list[tuple[str|float]]
     :param output_dir: 输出的目录
     :type output_dir: str
     :param line_colors: 折线的颜色, 必须与len(values)相等
@@ -59,7 +65,7 @@ def draw_line_chart(horizontal_grid_name, values, line_names, line_colors, title
     c.xAxis().setLabels(horizontal_grid_name)
 
     # Display 1 out of 3 labels on the x-axis.
-    c.xAxis().setLabelStep(20)
+    c.xAxis().setLabelStep(len(values[0]) / 40)
 
     # Add a title to the x axis
     c.xAxis().setTitle(horizontal_name)
@@ -77,9 +83,21 @@ def draw_line_chart(horizontal_grid_name, values, line_names, line_colors, title
         layer.addDataSet(values[index], line_colors[index], line_names[index])
 
     if output_dir:
-        c.makeChart(os.path.join(output_dir, title.replace(' ', '_') + '.png'))
+        output_path = os.path.join(os.path.join(output_dir, title.replace(' ', '_') + '.png'))
     else:
-        c.makeChart(os.path.join(default_path, title.replace(' ', '_') + '.png'))
+        output_path = os.path.join(os.path.join(default_path, title.replace(' ', '_') + '.png'))
+
+    c.makeChart(output_path)
+
+    # 加上opt点位
+    if opt_points:
+        for opt_point in opt_points:
+            if opt_point[2] == 0:
+                c.addText(c.getXCoor(opt_point[0]), c.getYCoor(opt_point[1]), 'B', "timesbi.ttf", 9, buy_color)
+            elif opt_point[2] == 1:
+                c.addText(c.getXCoor(opt_point[0]), c.getYCoor(opt_point[1]), 'S', "timesbi.ttf", 9, sell_color)
+
+    c.makeChart(output_path)
 
 
 if __name__ == '__main__':
@@ -93,4 +111,5 @@ if __name__ == '__main__':
 
     labels = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15",
               "16", "17", "18", "19", "20", "21", "22", "23", "24"]
-    draw_line_chart(labels, [data0, data1, data2], ['1', '2', '3'], default_colors[0:3], 'test')
+    draw_line_chart(labels, [data0, data1, data2], ['1', '2', '3'], default_colors[0:3], 'test',
+                    opt_points=[('5', 33, 0), ])
