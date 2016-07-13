@@ -54,5 +54,7 @@ layer.addDataSet(data2, 0x99bb55, "Gamma")
 # The x-coordinates for the line layer
 layer.setXData(timeStamps)
 
+layer1 = c.addScatterLayer(timeStamps, [data - 10 for data in data0], "name", 3, 10, 0x555555, 0x000000)
+
 # Output the chart
 c.makeChart("multiline2.png")

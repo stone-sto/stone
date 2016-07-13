@@ -3,7 +3,7 @@ import os
 
 from account.account import MoneyAccount
 from algorithm.simu_utils import cal_return_level_with_account
-from chart.chart_utils import draw_line_chart, default_colors
+from chart.chart_utils import draw_line_chart, default_colors, none_y_value
 from data.db.db_helper import DBYahooDay
 from data.info import Infos
 from data.info_utils import all_stock_and_clean_day_lines, resolve_ma
@@ -80,6 +80,8 @@ def ma(ma_type, stock_name, repo_count=3, down_buy_percent=0.05, win_percent=0.0
         chart_account_property = list()
         chart_grid_names = list()
         chart_tem_prices = list()
+        buy_points = list()
+        sell_points = list()
 
         # 数据量必须够, 否则没有意义
         if len(stock_lines) < m:
@@ -100,13 +102,16 @@ def ma(ma_type, stock_name, repo_count=3, down_buy_percent=0.05, win_percent=0.0
             value_m = resolve_ma(stock_lines[index + 1 - m: index + 1], m)
             cur_price = stock_lines[index][DBYahooDay.line_close_index]
             cur_date = stock_lines[index][DBYahooDay.line_date_index]
+            cur_char_hori = cur_date[5:].replace('-', '')
 
             # 画表需要的值
             chart_values_n.append(value_n)
             chart_values_m.append(value_m)
             chart_price.append(cur_price)
-            chart_grid_names.append(cur_date[6:])
+            chart_grid_names.append(cur_char_hori)
             chart_tem_prices.append(stock_tem_prices[index] * trans_percent_tem)
+            buyed = False
+            selled = False
 
             if ma_type == 0:
                 if state == 0:
@@ -168,8 +173,10 @@ def ma(ma_type, stock_name, repo_count=3, down_buy_percent=0.05, win_percent=0.0
                     if value_n >= value_m:
                         # 出现向上交叉, 买入
                         if stock_name not in money_account.stocks:
-                            money_account.buy_with_repos(stock_name, stock_line[DBYahooDay.line_close_index],
-                                                         stock_line[DBYahooDay.line_date_index], 1)
+                            if money_account.buy_with_repos(stock_name, stock_line[DBYahooDay.line_close_index],
+                                                            stock_line[DBYahooDay.line_date_index], 1):
+                                buy_points.append(cur_price)
+                                buyed = True
                         state = 0
                 else:
                     if value_m >= value_n:
@@ -187,13 +194,22 @@ def ma(ma_type, stock_name, repo_count=3, down_buy_percent=0.05, win_percent=0.0
                     if money_account.stocks[stock_name].return_percent >= win_percent / money_account.stock_repos[
                         stock_name]:
                         # 全部卖掉
-                        money_account.sell_with_repos(stock_name, stock_line[DBYahooDay.line_close_index],
-                                                      stock_line[DBYahooDay.line_date_index],
-                                                      money_account.stock_repos[stock_name])
+                        if money_account.sell_with_repos(stock_name, stock_line[DBYahooDay.line_close_index],
+                                                         stock_line[DBYahooDay.line_date_index],
+                                                         money_account.stock_repos[stock_name]):
+                            sell_points.append(cur_price)
+                            selled = True
                     elif money_account.stocks[stock_name].return_percent < down_buy_percent:
                         # 买入一份
-                        money_account.buy_with_repos(stock_name, stock_line[DBYahooDay.line_close_index],
-                                                     stock_line[DBYahooDay.line_date_index], 1)
+                        if money_account.buy_with_repos(stock_name, stock_line[DBYahooDay.line_close_index],
+                                                        stock_line[DBYahooDay.line_date_index], 1):
+                            buy_points.append(cur_price)
+                            buyed = True
+
+            if not buyed:
+                buy_points.append(none_y_value)
+            if not selled:
+                sell_points.append(none_y_value)
 
             # accout的价值加入图表变量中
             chart_account_property.append(money_account.property * trans_percent)
@@ -202,7 +218,7 @@ def ma(ma_type, stock_name, repo_count=3, down_buy_percent=0.05, win_percent=0.0
         draw_line_chart(chart_grid_names,
                         [chart_price, chart_values_n, chart_values_m, chart_account_property, chart_tem_prices],
                         ['price', 'ma5', 'ma10', 'account', 'shangzheng'], default_colors[0:5], chart_title,
-                        output_dir=chart_dir_path)
+                        output_dir=chart_dir_path, buy_points=buy_points, sell_points=sell_points)
         # log
         log_with_filename(chart_dir_name, money_account)
         # 保存结果
@@ -482,21 +498,23 @@ if __name__ == '__main__':
     # win 0.05 0.1
     # down 0.05 0.1
     # n, m 5,10 10,20
-    start_ma(3, repo_count=3, win_percent=0.05, down_buy_percent=0.05, n=5, m=10)
-
-    start_ma(3, repo_count=3, win_percent=0.05, down_buy_percent=0.05, n=10, m=20)
-
-    start_ma(3, repo_count=3, win_percent=0.05, down_buy_percent=0.1, n=5, m=10)
-
-    start_ma(3, repo_count=3, win_percent=0.05, down_buy_percent=0.1, n=10, m=20)
-
-    start_ma(3, repo_count=3, win_percent=0.1, down_buy_percent=0.05, n=5, m=10)
-
-    start_ma(3, repo_count=3, win_percent=0.1, down_buy_percent=0.05, n=10, m=20)
-
-    start_ma(3, repo_count=3, win_percent=0.1, down_buy_percent=0.1, n=5, m=10)
-
-    start_ma(3, repo_count=3, win_percent=0.1, down_buy_percent=0.1, n=10, m=20)
+    # start_ma(3, repo_count=3, win_percent=0.05, down_buy_percent=0.05, n=5, m=10)
+    #
+    # start_ma(3, repo_count=3, win_percent=0.05, down_buy_percent=0.05, n=10, m=20)
+    #
+    # start_ma(3, repo_count=3, win_percent=0.05, down_buy_percent=0.1, n=5, m=10)
+    #
+    # start_ma(3, repo_count=3, win_percent=0.05, down_buy_percent=0.1, n=10, m=20)
+    #
+    # start_ma(3, repo_count=3, win_percent=0.1, down_buy_percent=0.05, n=5, m=10)
+    #
+    # start_ma(3, repo_count=3, win_percent=0.1, down_buy_percent=0.05, n=10, m=20)
+    #
+    # start_ma(3, repo_count=3, win_percent=0.1, down_buy_percent=0.1, n=5, m=10)
+    #
+    # start_ma(3, repo_count=3, win_percent=0.1, down_buy_percent=0.1, n=10, m=20)
 
     # start_win_percent_ma(5, 10, 0.1)
     # start_win_percent_ma(10, 20, 0.1)
+
+    ma(3, 's600171_ss', 3, 0.05, 0.1, 5, 10)

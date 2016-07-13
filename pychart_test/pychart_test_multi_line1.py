@@ -3,15 +3,15 @@ from pychartdir import *
 
 # The data for the line chart
 data0 = [42, 49, 33, 38, 51, 46, 29, 41, 44, 57, 59, 52, 37, 34, 51, 56, 56, 60, 70, 76, 63, 67, 75,
-    64, 51]
+         64, 51]
 data1 = [50, 55, 47, 34, 42, 49, 63, 62, 73, 59, 56, 50, 64, 60, 67, 67, 58, 59, 73, 77, 84, 82, 80,
-    84, 98]
+         84, 98]
 data2 = [36, 28, 25, 33, 38, 20, 22, 30, 25, 33, 30, 24, 28, 15, 21, 26, 46, 42, 48, 45, 43, 52, 64,
-    60, 70]
+         60, 70]
 
 # The labels for the line chart
 labels = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15",
-    "16", "17", "18", "19", "20", "21", "22", "23", "24"]
+          "16", "17", "18", "19", "20", "21", "22", "23", "24"]
 
 # Create an XYChart object of size 600 x 300 pixels, with a light blue (EEEEFF) background, black
 # border, 1 pxiel 3D border effect and rounded corners
@@ -31,7 +31,7 @@ c.addLegend(50, 30, 0, "arialbd.ttf", 9).setBackground(Transparent)
 # 3D border.
 
 c.addTitle("Application Server Throughput", "timesbi.ttf", 15).setBackground(0xccccff, 0x000000,
-    glassEffect())
+                                                                             glassEffect())
 
 # Add a title to the y axis
 c.yAxis().setTitle("MBytes per hour")
@@ -66,6 +66,6 @@ print c.getYCoor(60)
 
 print c.getXCoor('3')
 
-c.addText(c.getXCoor('6'), c.getYCoor(80), 'B', "timesbi.ttf", 11, 0xc09090).setAlignment(TopRight)
+c.addScatterLayer(data0, data0)
 
 c.makeChart("multiline.png")
