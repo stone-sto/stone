@@ -18,9 +18,74 @@ def average(source_list):
         return 0.0
 
 
-def all_stock_and_clean_day_lines(stock_name):
+def stock_date_dict(start_date=None, end_date=None):
+    """
+    :param start_date:
+    :type start_date: str
+    :param end_date:
+    :type end_date: str
+    :return:
+    :rtype: dict[str, list]
+    """
+    yahoo_db = DBYahooDay()
+    stock_names = yahoo_db.select_all_stock_names()
+    res_dict = dict()
+    """:type: dict[str, list]"""
+    for stock_name in stock_names:
+        print stock_name
+        if start_date and end_date:
+            stock_lines = yahoo_db.select_period_lines(stock_name, start_date, end_date)
+        else:
+            stock_lines = yahoo_db.select_stock_all_lines(stock_name, need_open=True)
+
+        for stock_line in stock_lines:
+            cur_date = stock_line[DBYahooDay.line_date_index]
+            final_stock_line = list(stock_line)
+            final_stock_line[0] = stock_name
+            if not cur_date in res_dict:
+                res_dict[cur_date] = list()
+            res_dict[cur_date].append(final_stock_line)
+
+    return res_dict
+
+
+def all_stock_and_clean_day_dict(start_date=None, end_date=None):
+    """
+    把指定时间的雅虎日数据做成一个dict
+    :param end_date:
+    :type end_date: str
+    :param start_date:
+    :type start_date: str
+    :return:
+    :rtype: dict[str, dict[str, list[float|str|int]]]
+    """
+    yahoo_db = DBYahooDay()
+    # 结果的dict, 保存st的相关分组的时间表
+    res_dict = dict()
+    stock_names = yahoo_db.select_all_stock_names()
+    for stock_name in stock_names:
+        print stock_name
+        stock_lines_group = all_stock_and_clean_day_lines(stock_name, start_date, end_date)
+        for stock_lines in stock_lines_group:
+            # 分组的dict
+            stock_group_dict = dict()
+            # 分组的key
+            stock_group_key = stock_name + stock_lines[0][DBYahooDay.line_date_index]
+            res_dict[stock_group_key] = stock_group_dict
+            # 开始建dict
+            for stock_line in stock_lines:
+                stock_group_dict[stock_line[DBYahooDay.line_date_index]] = stock_line
+
+    return res_dict
+
+
+def all_stock_and_clean_day_lines(stock_name, start_date=None, end_date=None):
     """
     获取一个st的所有clean group
+    :param start_date:
+    :type start_date: str
+    :param end_date:
+    :type end_date: str
     :param stock_name:
     :type stock_name: str
     :return: clean group
@@ -28,7 +93,10 @@ def all_stock_and_clean_day_lines(stock_name):
     """
     yahoo_db = DBYahooDay()
     yahoo_db.open()
-    res = yahoo_db.select_stock_all_lines(stock_name)
+    if start_date and end_date:
+        res = yahoo_db.select_period_lines(stock_name, start_date, end_date)
+    else:
+        res = yahoo_db.select_stock_all_lines(stock_name)
     yahoo_db.close()
     return clean_day_lines(res)
 
@@ -81,11 +149,9 @@ def resolve_ma(stock_lines, n):
 
 if __name__ == '__main__':
     pass
-    # 测试clean_dsy_lines
-    yahoo_db = DBYahooDay()
-    yahoo_db.open()
-    stock_lines = yahoo_db.select_stock_all_lines('s600153_ss')
-    yahoo_db.close()
-    res_list = clean_day_lines(stock_lines)
-    for tmp_list in res_list:
-        print [stock_line[DBYahooDay.line_date_index] for stock_line in tmp_list]
+    res_dict = stock_date_dict()
+    for date_key in res_dict.keys():
+        stock_lines = res_dict[date_key]
+        print date_key
+        for stock_line in stock_lines:
+            print stock_line[0]

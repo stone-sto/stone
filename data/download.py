@@ -174,6 +174,7 @@ class YahooDownload(object):
         """
         for i in stock_range:
             stock_name = self.stock_names[i]
+            print stock_name
             # 打开数据库
             db_mutex = threading.Lock()
             self.yahoo_db = DBYahooDay()
@@ -297,8 +298,18 @@ def run_every_day():
 if __name__ == '__main__':
     pass
 
-    sina_down = SinaDownload()
-    sina_down.download_one_minute()
+    # sina_down = SinaDownload()
+    # sina_down.download_one_minute()
+    # 补充漏掉的st
+    # yahoo = YahooDownload()
+    # yahoo.init_stock_names()
+    # # for index in range(0,len(yahoo.stock_names)):
+    # #     stock_name = yahoo.stock_names[index]
+    # #     if stock_name == 's600198_ss':
+    # #         print index
+    # yahoo.download_target_range_names([198, 199])
+
+
     # 每日下载
     # SinaDownload().update_cur_day()
     # run_every_day()

@@ -8,6 +8,18 @@ from data.db.db_helper import DBYahooDay
 from data.info_utils import average
 
 
+def make_all_stock_lines_as_dict(start_day=None, end_day=None):
+    """
+    把指定区间的雅虎日数据做成一个dict返回
+    :param start_day:
+    :type start_day: str
+    :param end_day:
+    :type end_day: str
+    :return: 格式{st_name:{date: stock_line}}
+    :rtype: dict[str, dict[str, list]]
+    """
+
+
 class Infos(object):
     """
     实时的信息

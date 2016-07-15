@@ -10,6 +10,23 @@ from data.info_utils import all_stock_and_clean_day_lines
 from log.log_utils import log_with_filename
 
 
+def learning_down_up_mutil_opt(stock_name, down_start_percent=0.05, down_cell_percent=0.05, up_start_percent=0.05, repo_counts=5):
+    """
+    :param stock_name:
+    :type stock_name: str
+    :param down_start_percent: 起始下降, 开始买入的百分比
+    :type down_start_percent: float
+    :param down_cell_percent:
+    :type down_cell_percent: float
+    :param up_start_percent:
+    :type up_start_percent:float
+    :param repo_counts:
+    :type repo_counts:int
+    :return:account list
+    :rtype:list[MoneyAccount]
+    """
+
+
 def down_up_multi_opt(stock_name, down_start_percent=0.15, down_cell_percent=0.05, up_start_percent=0.15,
                       repo_counts=5):
     """
@@ -110,24 +127,27 @@ def down_up_multi_opt(stock_name, down_start_percent=0.15, down_cell_percent=0.0
         draw_line_chart(horizontal_names, [prices, account_values], ['price', 'account'], default_colors[0:2],
                         chart_title, output_dir=chart_dir_path, buy_points=buy_points, sell_points=sell_points)
         account_res.append(money_account)
-        log_with_filename(log_file_path, str(money_account))
+        # log_with_filename(log_file_path, str(money_account))
 
     return account_res
 
 
 if __name__ == '__main__':
-    stock_names = DBYahooDay().select_all_stock_names()
-    count = 0
-    total_count = 0
-    for stock_name in stock_names:
-        print stock_name
-        account_list = down_up_multi_opt(stock_name)
-        total_count += len(account_list)
-        for account in account_list:
-            if account.returns > 0:
-                count += 1
-
-        print float(count) / total_count
-
-    print float(count) / total_count
-    # down_up_multi_opt('s600119_ss')
+    # stock_names = DBYahooDay().select_all_stock_names()
+    # count = 0
+    # total_count = 0
+    # for stock_name in stock_names:
+    #     print stock_name
+    #     account_list = down_up_multi_opt(stock_name)
+    #     total_count += len(account_list)
+    #     for account in account_list:
+    #         if account.returns > 0:
+    #             count += 1
+    #
+    #     print float(count) / total_count
+    #
+    # print float(count) / total_count
+    account_res = down_up_multi_opt('s600119_ss', down_start_percent=0.05, up_start_percent=0.05, repo_counts=5)
+    # account_res = down_up_multi_opt('s600119_ss')
+    for account in account_res:
+        print str(account.returns)
