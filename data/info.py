@@ -52,6 +52,39 @@ class Infos(object):
         如stock_line[DBYahooDay.line_id_index]
         """
         super(Infos, self).__init__()
+        self.yahoo_db = DBYahooDay()
+        self.stock_names = None
+
+        # 另一种格式的st数据, {date, {stock_name: stock_line}}
+        self.date_stock_dict = dict()
+        """:type: dict[str, dict[str, list[float|str|int]]]"""
+
+        self.resolve_stock_names()
+
+    def resolve_stock_names(self):
+        self.stock_names = self.yahoo_db.select_all_stock_names()
+
+    def resolve_date_stock_dict(self, start_date=None, end_date=None):
+        """
+        搞定date_stock_dict, 略慢
+        :param end_date:
+        :type end_date: str
+        :param start_date:
+        :type start_date: str
+        """
+        print 'resolve date stock dict ...'
+        for stock_name in self.stock_names:
+            if start_date and end_date:
+                stock_lines = self.yahoo_db.select_period_lines(stock_name, start_date, end_date)
+            else:
+                stock_lines = self.yahoo_db.select_stock_all_lines(stock_name, need_open=True)
+
+            for stock_line in stock_lines:
+                cur_date = stock_line[DBYahooDay.line_date_index]
+                if cur_date not in self.date_stock_dict:
+                    self.date_stock_dict[cur_date] = dict()
+                # make一个stock_name dict
+                self.date_stock_dict[cur_date][stock_name] = stock_line
 
     @classmethod
     def update_stock_days_list(cls, stock_list):
