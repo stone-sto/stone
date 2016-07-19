@@ -28,14 +28,15 @@ def build_stock_name_dict():
     stock_names = yahoo_db.select_all_stock_names()
     res_dict = dict()
     for stock_name in stock_names:
-        print stock_name
         res_dict[stock_name] = yahoo_db.select_stock_all_lines(stock_name, need_open=True)
     return res_dict
 
 
-def build_stock_data_close_frame():
+def build_stock_data_frame(column_name='close'):
     """
-    用pandas和numpy做一个数据集合
+    用pandas和numpy做一个数据集合, 列名: st名称, 行名: 日期, 内容: 指定列的内容, 一次只能一列
+    :param column_name:
+    :type column_name:
     :return: 数据集
     :rtype: pd.DataFrame
     """
@@ -56,16 +57,16 @@ def build_stock_data_close_frame():
     #     res_data = pd.merge(res_data, stock_frame, how='left', left_on='date', right_on='date')
     # yahoo_db.close()
     # return res_data
-    res_data = build_stock_data_close_frame_recursive(stock_names, yahoo_db.connection)
+    res_data = build_stock_data_frame_recursive(stock_names, yahoo_db.connection, column_name)
     yahoo_db.close()
     return res_data
 
 
-def build_stock_data_close_frame_recursive(stock_names, connection):
+def build_stock_data_frame_recursive(stock_names, connection, column_name):
     name_len = len(stock_names)
     if name_len >= 2:
-        left_part = build_stock_data_close_frame_recursive(stock_names[0: name_len / 2], connection)
-        right_part = build_stock_data_close_frame_recursive(stock_names[name_len / 2:], connection)
+        left_part = build_stock_data_frame_recursive(stock_names[0: name_len / 2], connection, column_name)
+        right_part = build_stock_data_frame_recursive(stock_names[name_len / 2:], connection, column_name)
         if left_part is None:
             return right_part
         elif right_part is None:
@@ -73,9 +74,9 @@ def build_stock_data_close_frame_recursive(stock_names, connection):
         else:
             return pd.merge(left_part, right_part, how='left', left_on='date', right_on='date')
     elif name_len == 1:
-        print stock_names[0]
-        return pd.read_sql('select date, close as %s from %s order by date' % (stock_names[0], stock_names[0]),
-                           connection)
+        return pd.read_sql(
+            'select date, %s as %s from %s order by date' % (column_name, stock_names[0], stock_names[0]),
+            connection)
 
 
 def average(source_list):
@@ -227,7 +228,7 @@ if __name__ == '__main__':
     time_before = datetime.datetime.now()
     print time_before
 
-    print build_stock_data_close_frame()
+    print build_stock_data_frame()
 
     time_after = datetime.datetime.now()
     print time_after
