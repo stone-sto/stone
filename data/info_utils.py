@@ -44,25 +44,24 @@ def build_stock_data_frame(column_name='close'):
     # 名称集合
     stock_names = yahoo_db.select_all_stock_names()
 
-    # 上证
     yahoo_db.open()
-    # res_data = pd.read_sql('select date, close as s000001_ss from s000001_ss order by date', yahoo_db.connection)
-    # stock_names.remove('s000001_ss')
-    #
-    # # 开始build, close frame
-    # for stock_name in stock_names:
-    #     print stock_name
-    #     sql_str = 'select date, close as %s from %s order by date' % (stock_name, stock_name)
-    #     stock_frame = pd.read_sql(sql_str, yahoo_db.connection)
-    #     res_data = pd.merge(res_data, stock_frame, how='left', left_on='date', right_on='date')
-    # yahoo_db.close()
-    # return res_data
     res_data = build_stock_data_frame_recursive(stock_names, yahoo_db.connection, column_name)
     yahoo_db.close()
     return res_data
 
 
 def build_stock_data_frame_recursive(stock_names, connection, column_name):
+    """
+    递归的方式建立某一列的DataFrame
+    :param stock_names:
+    :type stock_names:
+    :param connection:
+    :type connection:
+    :param column_name: DBYahooDay中对应的列名
+    :type column_name: str
+    :return: 数据矩阵
+    :rtype: pd.DataFrame
+    """
     name_len = len(stock_names)
     if name_len >= 2:
         left_part = build_stock_data_frame_recursive(stock_names[0: name_len / 2], connection, column_name)

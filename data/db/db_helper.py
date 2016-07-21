@@ -312,6 +312,8 @@ class DBYahooDay(DBBase):
     line_percent = 'percent'  # 8
     line_point = 'point'  # 9
     line_divider = 'divider'  # 10
+    line_fix = 'fix'  # 11
+    line_cur_fix_rate = 'cur_fix_rate'  # 12
 
     # st表的列和index的关系
     column_dict = {
@@ -325,7 +327,9 @@ class DBYahooDay(DBBase):
         line_adj_close: 7,
         line_percent: 8,
         line_point: 9,
-        line_divider: 10
+        line_divider: 10,
+        line_fix: 11,
+        line_cur_fix_rate: 12,
     }
 
     line_id_index = 0
@@ -339,6 +343,8 @@ class DBYahooDay(DBBase):
     line_percent_index = 8
     line_point_index = 9
     line_divider_index = 10
+    line_fix_index = 11
+    line_cur_fix_rate_index = 12
 
     def __init__(self):
         super(DBYahooDay, self).__init__()
@@ -351,6 +357,89 @@ class DBYahooDay(DBBase):
 
     def _db_file_path(self):
         return '/Users/wgx/workspace/data/db_yahoo_day.db'
+
+    def add_column_to_table(self, table_name, column_name, column_desc):
+        """
+        :param column_desc:
+        :type column_desc: str
+        :param column_name:
+        :type column_name: str
+        :param table_name:
+        :type table_name: str
+        """
+        self.cursor.execute('alter table %s add column "%s" %s' % (table_name, column_name, column_desc))
+
+    def update_fix_and_fix_rate(self, stock_name, update_date, fix, rate):
+        """
+        :param stock_name:
+        :type stock_name:str
+        :param update_date:
+        :type update_date: str
+        :param fix:
+        :type fix: float
+        :param rate:
+        :type rate: float
+        """
+        self.cursor.execute('update %s set fix = %f, cur_fix_rate = %f where date = "%s"' % (
+            stock_name, fix, rate, update_date))
+
+    def add_fix_value_to(self, stock_name):
+        """
+        给一个st加上fix value和fix rate, 表示当前从2000年开始之后的实际价值
+        自动删除close为0的行, 因为没有意义
+        方法: 遇到上涨或下跌超过10%的, 直接认为价格没变
+        对比close, 两种情况:
+        1. 正常, rate = last rate, fix = close * rate
+        2. 不正常, rate = last_rate * last_close / close, fix = close * rate
+        :param stock_name:
+        :type stock_name: str
+        """
+        stock_lines = self.select_stock_all_lines(stock_name, need_open=True)
+        # 记录第一天的价格, 并把fix设成close, rate设成1.0
+        last_close = stock_lines[0][self.line_close_index]
+        last_rate = 1.0
+        last_date = stock_lines[0][self.line_date_index]
+        self.open()
+
+        self.update_fix_and_fix_rate(stock_name, last_date, last_close, last_rate)
+        # 开始计算, 顺便把close 为0的行给删掉
+        for stock_line in stock_lines:
+            close_price = stock_line[self.line_close_index]
+            cur_date = stock_line[self.line_date_index]
+
+            # 如果前一天的close为0, 把数据删掉, 然后更新last close为今天的close
+            if last_close == 0:
+                self.cursor.execute('delete from %s where date = "%s"' % (stock_name, last_date))
+                self.connection.commit()
+                last_close = close_price
+                last_date = cur_date
+                continue
+
+            # 如果当天为0, 没有意义, 所以直接pass就好
+            if close_price == 0:
+                last_close = close_price
+                last_date = cur_date
+                continue
+
+            percent = close_price / last_close - 1
+            # 不正常
+            if percent > 0.11 or percent < - 0.11:
+                rate = last_rate * last_close / close_price
+                fix = close_price * rate
+                self.update_fix_and_fix_rate(stock_name, cur_date, fix, rate)
+                last_rate = rate
+
+            # 正常
+            else:
+                rate = last_rate
+                fix = close_price * rate
+                self.update_fix_and_fix_rate(stock_name, cur_date, fix, rate)
+
+            last_close = close_price
+            last_date = cur_date
+
+        self.connection.commit()
+        self.close()
 
     def del_target_date_lines(self, target_date):
         """
@@ -648,9 +737,16 @@ class DBYahooDay(DBBase):
 if __name__ == '__main__':
     pass
 
-    # 对日数据进行一次clean
-    yahoo_db = DBYahooDay()
-    yahoo_db.do_clean_datas()
+    # 填充fix和rate
+    yh = DBYahooDay()
+    stock_names = yh.select_all_stock_names()
+
+    yh.open()
+    for stock_name in stock_names:
+        print stock_name
+        yh.add_fix_value_to(stock_name)
+
+    yh.close()
 
     # 删除某一日期的数据
     # yahoo_db = DBYahooDay()

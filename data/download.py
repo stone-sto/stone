@@ -167,6 +167,39 @@ class YahooDownload(object):
     def get_yahoo_format_name(name):
         return name[1:].replace('_', '.')
 
+    def download_target_date_day_lines(self, target_date):
+        """
+        :param target_date:
+        :type target_date: str
+        """
+        self.yahoo_db = DBYahooDay()
+        stock_names = self.yahoo_db.select_all_stock_names()
+        #  搞定日期
+        date_strs = target_date.split('-')
+        date_year = int(date_strs[0])
+        date_month = int(date_strs[1])
+        date_day = int(date_strs[2])
+
+        # 开始下载
+        for stock_name in stock_names:
+            print stock_name
+            # 检查指定的数据是不是存在, 如果存在, 跳过
+            exist_lines = self.yahoo_db.select_period_lines(stock_name, target_date, target_date)
+            if exist_lines and len(exist_lines) > 0:
+                continue
+
+            # 正式下载
+            stock_data = self.download_one_stock(stock_name, date_year, date_month, date_day, date_year, date_month,
+                                                 date_day)
+            if stock_data:
+                stock_lines = stock_data.split('\n')
+                self.yahoo_db.open()
+                self.yahoo_db.add_row_to_stock_name_table(stock_name)
+                self.fill_one_stock(stock_name, stock_lines[1:], need_create=False)
+                self.yahoo_db.close()
+            else:
+                log_by_time(stock_name + ' skip.')
+
     def download_target_range_names(self, stock_range):
         """
         下载指定区间的stock
@@ -205,13 +238,16 @@ class YahooDownload(object):
 
         log_by_time('range from %d to %d done.' % (stock_range[0], stock_range[-1]))
 
-    def fill_one_stock(self, stock_name, stock_data_lines):
+    def fill_one_stock(self, stock_name, stock_data_lines, need_create=True):
         """
         增加一个st的数据
+        :param need_create: 是否需要建表
+        :type need_create: bool
         :param stock_name:  名称
         :param stock_data_lines: 数据
         """
-        self.yahoo_db.create_st_table(stock_name)
+        if need_create:
+            self.yahoo_db.create_st_table(stock_name)
         for stock_data_line in stock_data_lines:
             table_names = (
                 DBYahooDay.line_date,
@@ -297,6 +333,14 @@ def run_every_day():
 
 if __name__ == '__main__':
     pass
+
+    # 补充漏掉的日期
+    # yahoo = YahooDownload()
+    # yahoo.download_target_date_day_lines('2016-7-20')
+
+    yh = DBYahooDay()
+    yh.fill_percent_for_all_stock(-1)
+    yh.fill_point_for_all_stock(-1)
 
     # sina_down = SinaDownload()
     # sina_down.download_one_minute()
