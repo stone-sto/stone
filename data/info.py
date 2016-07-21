@@ -17,6 +17,7 @@ class DBInfoCache(object):
     一个用来放临时数据的db, 比如整个close price的DataFrame, 利用to_sql和read_sql来快速的读取到内存中
     使用set不断的更新, 实际上数据没必要一直是最新的, 所以无聊的时候更新一下就行
     用get直接从数据库中取出来, 应该比一下下merge要快得多
+    fix的DataFrame是40m, 估计其他的也差不多这个规模
     """
     db_file_path = '/Users/wgx/workspace/data/cache_db.db'
     table_name_fix_part1 = 'fix_part1'
