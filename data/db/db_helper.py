@@ -584,6 +584,46 @@ class DBYahooDay(DBBase):
             'update %s set %s=%f,%s=%d where %s="%s"' % (
                 stock_name, self.line_percent, percent, self.line_divider, divider, self.line_date, date))
 
+    def del_duplicate_lines_for_stock_days(self):
+        """
+        删除st表中的重复的行
+        """
+        stock_names = self.select_all_stock_names()
+        for stock_name in stock_names:
+            print stock_name
+            stock_lines = self.select_stock_all_lines(stock_name, need_open=True)
+            self.open()
+            last_date = stock_lines[0][self.line_date_index]
+            for index in range(1, len(stock_lines)):
+                cur_date = stock_lines[index][self.line_date_index]
+                if last_date == cur_date:
+                    # 重复了, 干掉
+                    cur_id = stock_lines[index][self.line_id_index]
+                    self.cursor.execute('delete from %s where %s = %d' % (stock_name, self.line_id, cur_id))
+                    self.connection.commit()
+                last_date = cur_date
+            self.close()
+
+    def del_duplicate_lines_for_table_name(self):
+        """
+        删除stock_name表中出现的重复数据
+        """
+        self.open()
+        # 获取所有数据
+        stock_name_lines = self.cursor.execute(
+            'select * from %s order by %s' % (self.table_stock_name, self.stock_name_name)).fetchall()
+        last_name = stock_name_lines[0][1]
+        for index in range(1, len(stock_name_lines)):
+            cur_name = stock_name_lines[index][1]
+            if last_name == cur_name:
+                # 删除当前行
+                cur_id = stock_name_lines[index][0]
+                self.cursor.execute(
+                    'delete from %s where %s = %d' % (self.table_stock_name, self.stock_name_id, cur_id))
+                self.connection.commit()
+            last_name = cur_name
+        self.close()
+
     def do_clean_datas(self):
         """
         对日数据进行clean, close price 为0, 干掉, 成交量为0, 干掉(排除指数)
@@ -737,16 +777,21 @@ class DBYahooDay(DBBase):
 if __name__ == '__main__':
     pass
 
+    # 删除重复的st行
+    # DBYahooDay().del_duplicate_lines_for_stock_days()
+    # 删除重复的st名称
+    # DBYahooDay().del_duplicate_lines_for_table_name()
+
     # 填充fix和rate
-    yh = DBYahooDay()
-    stock_names = yh.select_all_stock_names()
-
-    yh.open()
-    for stock_name in stock_names:
-        print stock_name
-        yh.add_fix_value_to(stock_name)
-
-    yh.close()
+    # yh = DBYahooDay()
+    # stock_names = yh.select_all_stock_names()
+    #
+    # yh.open()
+    # for stock_name in stock_names:
+    #     print stock_name
+    #     yh.add_fix_value_to(stock_name)
+    #
+    # yh.close()
 
     # 删除某一日期的数据
     # yahoo_db = DBYahooDay()

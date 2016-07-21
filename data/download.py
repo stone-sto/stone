@@ -194,7 +194,6 @@ class YahooDownload(object):
             if stock_data:
                 stock_lines = stock_data.split('\n')
                 self.yahoo_db.open()
-                self.yahoo_db.add_row_to_stock_name_table(stock_name)
                 self.fill_one_stock(stock_name, stock_lines[1:], need_create=False)
                 self.yahoo_db.close()
             else:
@@ -339,8 +338,8 @@ if __name__ == '__main__':
     # yahoo.download_target_date_day_lines('2016-7-20')
 
     yh = DBYahooDay()
-    yh.fill_percent_for_all_stock(-1)
-    yh.fill_point_for_all_stock(-1)
+    yh.fill_percent_for_all_stock(-2)
+    yh.fill_point_for_all_stock(-2)
 
     # sina_down = SinaDownload()
     # sina_down.download_one_minute()
