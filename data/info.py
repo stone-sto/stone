@@ -1,23 +1,97 @@
 #! -*- encoding:utf-8 -*-
 
 # 这里管各种各样的信息, 比如时间, 价格等, 根据需求来实现接口
-
+import traceback
 from datetime import date, time
 
+import sqlite3
+
 from data.db.db_helper import DBYahooDay
-from data.info_utils import average
+from data.info_utils import average, build_stock_data_frame
+import pandas as pd
+import numpy as np
 
 
-def make_all_stock_lines_as_dict(start_day=None, end_day=None):
+class DBInfoCache(object):
     """
-    把指定区间的雅虎日数据做成一个dict返回
-    :param start_day:
-    :type start_day: str
-    :param end_day:
-    :type end_day: str
-    :return: 格式{st_name:{date: stock_line}}
-    :rtype: dict[str, dict[str, list]]
+    一个用来放临时数据的db, 比如整个close price的DataFrame, 利用to_sql和read_sql来快速的读取到内存中
+    使用set不断的更新, 实际上数据没必要一直是最新的, 所以无聊的时候更新一下就行
+    用get直接从数据库中取出来, 应该比一下下merge要快得多
     """
+    db_file_path = '/Users/wgx/workspace/data/cache_db.db'
+    table_name_fix_part1 = 'fix_part1'
+    table_name_fix_part2 = 'fix_part2'
+    table_name_fix_part3 = 'fix_part3'
+
+    def __init__(self):
+        super(DBInfoCache, self).__init__()
+        self.connection = None
+        """:type:sqlite3.Connection"""
+        self.cursor = None
+        """:type:sqlite3.Cursor"""
+
+    def open(self):
+        self.connection = sqlite3.connect(self.db_file_path)
+        self.cursor = self.connection.cursor()
+
+    def close(self):
+        self.cursor.close()
+        self.connection.close()
+
+    def set_fix(self):
+        """
+        设置fix的DataFrame
+        """
+        self.open()
+        try:
+            self.cursor.execute('drop table ' + self.table_name_fix_part1)
+            self.cursor.execute('drop table ' + self.table_name_fix_part2)
+            self.cursor.execute('drop table ' + self.table_name_fix_part3)
+        except:
+            traceback.print_exc()
+
+        res_data = build_stock_data_frame(DBYahooDay.line_fix)
+        res_data.iloc[:, 0:1000].to_sql(self.table_name_fix_part1, self.connection)
+        res_data.iloc[:, 1000:2000].to_sql(self.table_name_fix_part2, self.connection)
+        res_data.iloc[:, 2000:].to_sql(self.table_name_fix_part3, self.connection)
+
+        self.close()
+
+    def get_fix(self):
+        """
+        获取fix的DataFrame
+        :return:
+        :rtype: pd.DataFrame
+        """
+        self.open()
+
+        part1 = pd.read_sql('select * from %s' % self.table_name_fix_part1,
+                            self.connection)
+        part2 = pd.read_sql('select * from %s' % self.table_name_fix_part2,
+                            self.connection)
+        part3 = pd.read_sql('select * from %s' % self.table_name_fix_part3,
+                            self.connection)
+
+        res_data = part1.merge(part2, how='left', left_on='index', right_on='index')
+        res_data = res_data.merge(part3, how='left', left_on='index', right_on='index')
+
+        self.close()
+
+        return res_data
+
+
+if __name__ == '__main__':
+    import datetime
+
+    before = datetime.datetime.now()
+    print before
+
+    print DBInfoCache().get_fix()
+
+    after = datetime.datetime.now()
+    print after
+
+    print after - before
 
 
 class Infos(object):

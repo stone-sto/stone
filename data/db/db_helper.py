@@ -786,12 +786,9 @@ if __name__ == '__main__':
     # yh = DBYahooDay()
     # stock_names = yh.select_all_stock_names()
     #
-    # yh.open()
     # for stock_name in stock_names:
     #     print stock_name
     #     yh.add_fix_value_to(stock_name)
-    #
-    # yh.close()
 
     # 删除某一日期的数据
     # yahoo_db = DBYahooDay()
