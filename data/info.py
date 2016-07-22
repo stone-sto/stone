@@ -78,6 +78,11 @@ class DBInfoCache(object):
 
         self.close()
 
+        # 数据的格式还有点问题, 需要fix一下
+        date_list = res_data['date']
+        del res_data['date']
+        del res_data['index']
+        res_data.index = date_list
         return res_data
 
 

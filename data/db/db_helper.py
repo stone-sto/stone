@@ -383,7 +383,17 @@ class DBYahooDay(DBBase):
         self.cursor.execute('update %s set fix = %f, cur_fix_rate = %f where date = "%s"' % (
             stock_name, fix, rate, update_date))
 
-    def add_fix_value_to(self, stock_name):
+    def add_fix_value_to_all(self, length=None):
+        """
+        给所有的st增加fix
+        :param length: 天数, 负数
+        :type length: int
+        """
+        stock_names = self.select_all_stock_names()
+        for stock_name in stock_names:
+            self.add_fix_value_to(stock_name, length)
+
+    def add_fix_value_to(self, stock_name, length=None):
         """
         给一个st加上fix value和fix rate, 表示当前从2000年开始之后的实际价值
         自动删除close为0的行, 因为没有意义
@@ -391,14 +401,22 @@ class DBYahooDay(DBBase):
         对比close, 两种情况:
         1. 正常, rate = last rate, fix = close * rate
         2. 不正常, rate = last_rate * last_close / close, fix = close * rate
+        :param length: 只填充最后的几天
+        :type length: int
         :param stock_name:
         :type stock_name: str
         """
         stock_lines = self.select_stock_all_lines(stock_name, need_open=True)
+        if length:
+            stock_lines = stock_lines[length-1:]
         # 记录第一天的价格, 并把fix设成close, rate设成1.0
         last_close = stock_lines[0][self.line_close_index]
-        last_rate = 1.0
         last_date = stock_lines[0][self.line_date_index]
+        # 确认原来有没有这个rate
+        if stock_lines[0][self.line_cur_fix_rate_index]:
+            last_rate = stock_lines[0][self.line_cur_fix_rate_index]
+        else:
+            last_rate = 1.0
         self.open()
 
         self.update_fix_and_fix_rate(stock_name, last_date, last_close, last_rate)
@@ -427,6 +445,7 @@ class DBYahooDay(DBBase):
                 rate = last_rate * last_close / close_price
                 fix = close_price * rate
                 self.update_fix_and_fix_rate(stock_name, cur_date, fix, rate)
+                log_by_time('%s with fix and rate : %f %f abnormal' % (stock_name, fix, rate))
                 last_rate = rate
 
             # 正常
@@ -434,6 +453,8 @@ class DBYahooDay(DBBase):
                 rate = last_rate
                 fix = close_price * rate
                 self.update_fix_and_fix_rate(stock_name, cur_date, fix, rate)
+
+            log_by_time('%s with fix and rate : %f %f' % (stock_name, fix, rate))
 
             last_close = close_price
             last_date = cur_date
@@ -783,12 +804,8 @@ if __name__ == '__main__':
     # DBYahooDay().del_duplicate_lines_for_table_name()
 
     # 填充fix和rate
-    # yh = DBYahooDay()
-    # stock_names = yh.select_all_stock_names()
-    #
-    # for stock_name in stock_names:
-    #     print stock_name
-    #     yh.add_fix_value_to(stock_name)
+    yh = DBYahooDay()
+    yh.add_fix_value_to_all(-1)
 
     # 删除某一日期的数据
     # yahoo_db = DBYahooDay()

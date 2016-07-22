@@ -5,7 +5,7 @@ from account.account import MoneyAccount
 from algorithm.simu_utils import cal_return_level_with_account
 from chart.chart_utils import draw_line_chart, default_colors, none_y_value
 from data.db.db_helper import DBYahooDay
-from data.info import Infos
+from data.info import Infos, DBInfoCache
 from data.info_utils import all_stock_and_clean_day_lines, resolve_ma
 from log.log_utils import log_by_time, log_with_filename
 from simu_base import SimuStOneByOne
@@ -16,6 +16,7 @@ from simu_base import SimuStOneByOne
 # 按照规则, 多仓位买卖, multi_opt_ma
 # 按照规则, 指定盈利百分比买卖, win_percent_ma
 # 按照规则, 多仓位, 指定盈利百分比买卖, multi_opt_win_percent_ma
+
 
 def ma(ma_type, stock_name, repo_count=3, down_buy_percent=0.05, win_percent=0.05, n=5, m=10):
     """
@@ -492,29 +493,29 @@ def win_percent_ma(stock_name, tag_name, n=10, m=20, win_percent=0.05):
     return len(stock_lines_group), win_count, win_1_count, win_2_count
 
 
-if __name__ == '__main__':
-    # start_win_percent_ma(5, 10, 0.05)
-    # repo 3 5
-    # win 0.05 0.1
-    # down 0.05 0.1
-    # n, m 5,10 10,20
-    # start_ma(3, repo_count=3, win_percent=0.05, down_buy_percent=0.05, n=5, m=10)
-    #
-    # start_ma(3, repo_count=3, win_percent=0.05, down_buy_percent=0.05, n=10, m=20)
-    #
-    # start_ma(3, repo_count=3, win_percent=0.05, down_buy_percent=0.1, n=5, m=10)
-    #
-    # start_ma(3, repo_count=3, win_percent=0.05, down_buy_percent=0.1, n=10, m=20)
-    #
-    # start_ma(3, repo_count=3, win_percent=0.1, down_buy_percent=0.05, n=5, m=10)
-    #
-    # start_ma(3, repo_count=3, win_percent=0.1, down_buy_percent=0.05, n=10, m=20)
-    #
-    # start_ma(3, repo_count=3, win_percent=0.1, down_buy_percent=0.1, n=5, m=10)
-    #
-    # start_ma(3, repo_count=3, win_percent=0.1, down_buy_percent=0.1, n=10, m=20)
-
-    # start_win_percent_ma(5, 10, 0.1)
-    # start_win_percent_ma(10, 20, 0.1)
-
-    ma(3, 's600171_ss', 3, 0.05, 0.1, 5, 10)
+# if __name__ == '__main__':
+#     # start_win_percent_ma(5, 10, 0.05)
+#     # repo 3 5
+#     # win 0.05 0.1
+#     # down 0.05 0.1
+#     # n, m 5,10 10,20
+#     # start_ma(3, repo_count=3, win_percent=0.05, down_buy_percent=0.05, n=5, m=10)
+#     #
+#     # start_ma(3, repo_count=3, win_percent=0.05, down_buy_percent=0.05, n=10, m=20)
+#     #
+#     # start_ma(3, repo_count=3, win_percent=0.05, down_buy_percent=0.1, n=5, m=10)
+#     #
+#     # start_ma(3, repo_count=3, win_percent=0.05, down_buy_percent=0.1, n=10, m=20)
+#     #
+#     # start_ma(3, repo_count=3, win_percent=0.1, down_buy_percent=0.05, n=5, m=10)
+#     #
+#     # start_ma(3, repo_count=3, win_percent=0.1, down_buy_percent=0.05, n=10, m=20)
+#     #
+#     # start_ma(3, repo_count=3, win_percent=0.1, down_buy_percent=0.1, n=5, m=10)
+#     #
+#     # start_ma(3, repo_count=3, win_percent=0.1, down_buy_percent=0.1, n=10, m=20)
+#
+#     # start_win_percent_ma(5, 10, 0.1)
+#     # start_win_percent_ma(10, 20, 0.1)
+#
+#     ma(3, 's600171_ss', 3, 0.05, 0.1, 5, 10)

@@ -324,10 +324,11 @@ def run_every_day():
     """
     # 每日下载
     SinaDownload().update_cur_day()
-    # 更新percent和point
+    # 更新percent和point和fix
     yahoo_db = DBYahooDay()
     yahoo_db.fill_percent_for_all_stock(-1)
     yahoo_db.fill_point_for_all_stock(-1)
+    yahoo_db.add_fix_value_to_all(-1)
 
 
 if __name__ == '__main__':
