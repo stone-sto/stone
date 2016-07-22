@@ -83,6 +83,10 @@ class DBInfoCache(object):
         del res_data['date']
         del res_data['index']
         res_data.index = date_list
+
+        # 上证的部分日期对应的数据无意义, 导致其他的数据都是NaN, 把这样的行都给干掉
+        res_data = res_data.dropna(axis='index', thresh=2)
+
         return res_data
 
 
