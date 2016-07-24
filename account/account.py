@@ -325,7 +325,8 @@ class MoneyAccount(object):
                 stock_line = stock_line_dict.get(stock_name)
                 hold_stock.update(stock_line[0], stock_line[1])
             else:
-                print 'werror : stock_line_dict is not enough, may cause something error.'
+                pass
+                #print 'werror : stock_line_dict is not enough, may cause something error.'
 
         # 更新完st, 更新自己
         self.update_self()
