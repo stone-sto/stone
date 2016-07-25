@@ -46,7 +46,7 @@ def draw_line_chart(horizontal_grid_name, values, line_names, line_colors, filen
 
     # Create an XYChart object of size 600 x 300 pixels, with a light blue (EEEEFF) background, black
     # border, 1 pxiel 3D border effect and rounded corners
-    c = XYChart(1200, 600, 0xeeeeff, 0x000000, 1)
+    c = XYChart(2400, 1200, 0xeeeeff, 0x000000, 1)
     c.setRoundedFrame()
 
     # Set the plotarea at (55, 58) and of size 520 x 195 pixels, with white background. Turn on both
