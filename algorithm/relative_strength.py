@@ -223,4 +223,9 @@ def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweigh
 
 
 if __name__ == '__main__':
-    relative_strength_monentum()
+    win_percent_list = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]
+    lose_percent_list = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
+    for win_percent in win_percent_list:
+        for lose_percent in lose_percent_list:
+            relative_strength_monentum(denominator=5, win_percent=win_percent, lose_percent=lose_percent,
+                                       rank_percent=0.4)

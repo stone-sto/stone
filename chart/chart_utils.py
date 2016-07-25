@@ -51,7 +51,7 @@ def draw_line_chart(horizontal_grid_name, values, line_names, line_colors, filen
 
     # Set the plotarea at (55, 58) and of size 520 x 195 pixels, with white background. Turn on both
     # horizontal and vertical grid lines with light grey color (0xcccccc)
-    c.setPlotArea(55, 58, 1100, 490, 0xffffff, -1, -1, 0xcccccc, 0xcccccc)
+    c.setPlotArea(55, 58, 2200, 980, 0xffffff, -1, -1, 0xcccccc, 0xcccccc)
 
     # Add a legend box at (50, 30) (top of the chart) with horizontal layout. Use 9pt Arial Bold font.
     # Set the background and border color to Transparent.
