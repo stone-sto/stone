@@ -91,12 +91,32 @@ class DBInfoCache(object):
 
 
 if __name__ == '__main__':
+    # yh = DBYahooDay()
+    # yh.open()
+    # column_name = 'fix'
+    # stock_name = 's300249_sz'
+    # s300249 = pd.read_sql(
+    #     'select date, %s as %s from %s order by date' % (column_name, stock_name, stock_name),
+    #     yh.connection)
+    # stock_name = 's603999_ss'
+    # s3999 = pd.read_sql(
+    #     'select date, %s as %s from %s order by date' % (column_name, stock_name, stock_name),
+    #     yh.connection)
+    #
+    # print s300249
+    # print s3999
+    # merge_res = pd.merge(s300249, s3999, how='left', left_on='date', right_on='date')
+    # merge_res.index = merge_res['date']
+    # print merge_res.loc['2015-10-15', 's603999_ss']
+    # yh.close()
+
     import datetime
 
     before = datetime.datetime.now()
     print before
 
-    print DBInfoCache().get_fix()
+    res_data = DBInfoCache().get_fix()
+    print res_data.loc['2015-10-15', 's300249_sz']
 
     after = datetime.datetime.now()
     print after

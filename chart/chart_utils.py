@@ -13,11 +13,11 @@ buy_color = 0xccd6dc
 sell_color = 0xff5656
 
 # 画点时, 必须指定一个无效的y值
-none_y_value=0
+none_y_value = 0
 
 
-def draw_line_chart(horizontal_grid_name, values, line_names, line_colors, title, horizontal_name='', vertical_name='',
-                    output_dir=None, buy_points=None, sell_points=None):
+def draw_line_chart(horizontal_grid_name, values, line_names, line_colors, filename, title='', horizontal_name='',
+                    vertical_name='', output_dir=None, buy_points=None, sell_points=None):
     """
     画折线图
     :param sell_points: 卖出的点位, 画灰色三角, 传入的数据长度和horizontal_grid_name 长度一致, 如果为空, 设置值为20000
@@ -88,9 +88,9 @@ def draw_line_chart(horizontal_grid_name, values, line_names, line_colors, title
         layer.addDataSet(values[index], line_colors[index], line_names[index])
 
     if output_dir:
-        output_path = os.path.join(os.path.join(output_dir, title.replace(' ', '_') + '.png'))
+        output_path = os.path.join(os.path.join(output_dir, filename.replace(' ', '_') + '.png'))
     else:
-        output_path = os.path.join(os.path.join(default_path, title.replace(' ', '_') + '.png'))
+        output_path = os.path.join(os.path.join(default_path, filename.replace(' ', '_') + '.png'))
 
     # 增加买入和卖出的点位
     if buy_points and len(buy_points) > 0:

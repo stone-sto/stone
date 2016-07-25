@@ -1,14 +1,18 @@
 #! encoding:utf-8
+import datetime
+
 from account.account import MoneyAccount
 from chart.chart_utils import draw_line_chart, default_colors
 from data.info import DBInfoCache
 import numpy as np
 import pandas as pd
 
+from log.log_utils import log_with_filename
 
-def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweight_period=None, win_percent=0.20,
-                               need_up_s01=20, sell_after_reweight=False, lose_percent=0.15, rank_position=None,
-                               rank_percent=0.15):
+
+def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweight_period=None, win_percent=0.2,
+                               need_up_s01=20, sell_after_reweight=False, lose_percent=0.3, rank_position=None,
+                               rank_percent=0.35):
     """
     第一个按照时间进行的算法, pandas 和numpy还不会用, 先随便写写, 回头一定要认真看看
     这个算法的a股验证: https://www.quantopian.com/algorithms/578dcb3a42af719b300007e4
@@ -22,7 +26,7 @@ def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweigh
     :type sell_after_reweight: bool
     :param need_up_s01: 买入的时候, 上证指数必须处于n日均线之上
     :type need_up_s01: int
-    :param win_percent: 坐实收入的比例
+    :param win_percent: 坐实收入的比例r
     :type win_percent: float
     :param reweight_period: 调整持仓比例的时间间隔, 单位是 天
     :type reweight_period: int
@@ -33,21 +37,13 @@ def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweigh
     :param denominator: 权重数量
     :type denominator: int
     """
+    time_before = datetime.datetime.now()
     fix_frame = DBInfoCache().get_fix()
 
     # 记下上证, 把其他几个指数都给删掉, 另外深证的数据有问题, 如果以后要用, 记得要clean
     s01 = fix_frame['s000001_ss']
     del fix_frame['s000001_ss']
     del fix_frame['s399001_sz']
-    # 把几次牛熊转换的时间给干掉
-    # # 2000年到2003年, 具体回去再确认下
-    # fix_frame = fix_frame.drop(fix_frame.loc[:'2005-01-03'].index.values, axis='index')
-    # # 2007年到2008年
-    # fix_frame = fix_frame.drop(fix_frame.loc['2007-01-04':'2008-12-31'].index.values, axis='index')
-    # # 2014年到2015年
-    # fix_frame = fix_frame.drop(fix_frame.loc['2014-01-02':'2015-03-01'].index.values, axis='index')
-
-    # fix_frame = fix_frame.loc['2015-08-26':]
 
     date_list = fix_frame.index.values
 
@@ -65,9 +61,24 @@ def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweigh
     chart_account_divider = s01[0] * 100 / account.property
     chart_account_value = list()
     chart_s01_value = list()
+    import os
+    chart_output_dir = os.path.join(os.path.dirname(__file__), '../result/relative_strength')
+    if not os.path.exists(chart_output_dir):
+        os.system('mkdir -p ' + chart_output_dir)
+
+    # 搞定存图片的文件夹, 这次系统一点, 都保存下来, 用参数命名, 用收益/回撤做标题
+    chart_title = 'denominator_%s_malength_%s_temlength_%s_reweightperiod_%s_winpercent_%s_' \
+                  'needups01_%s_sellafterreweight_%s_losepercent_%s_rankposition_%s_rankpercent_%s' % (
+                      str(denominator), str(ma_length), str(tem_length), str(reweight_period), str(win_percent),
+                      str(need_up_s01), str(sell_after_reweight), str(lose_percent), str(rank_position),
+                      str(rank_percent))
 
     # reweight的计数
     reweight_count = 0
+
+    # 回撤
+    max_dd = 0
+    max_property = 0
     for date_str in date_list:
 
         # 所有的历史数据
@@ -80,6 +91,14 @@ def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweigh
             if not np.isnan(tem_rows.loc[date_str, stock_name]):
                 account.update_with_all_stock_one_line({stock_name: (tem_rows.loc[date_str, stock_name], date_str)})
         chart_account_value.append(account.property * chart_account_divider / 100)
+
+        # 计算回撤
+        if account.property > max_property:
+            max_property = account.property
+        cur_dd = account.property / max_property - 1
+        if cur_dd < max_dd:
+            max_dd = cur_dd
+        log_with_filename(chart_title, 'max dd : ' + str(max_dd))
 
         # 开始循环
         # 过去tem_length的
@@ -120,7 +139,7 @@ def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweigh
                         lose_count += 1
                     account.sell_with_repos(stock_name, account.stocks[stock_name].cur_price, date_str, 1)
 
-        print 'win_count, lose_count : %d %d' % (win_count, lose_count)
+        log_with_filename(chart_title, 'win_count, lose_count : %d %d' % (win_count, lose_count))
 
         # 是否需要根据reweight period进行reweight
         if reweight_period:
@@ -150,7 +169,7 @@ def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweigh
                     rank_count += 1
 
             rank_place = int(rank_count * rank_percent)
-            print 'rank place : ' + str(rank_place)
+            log_with_filename(chart_title, 'rank place : ' + str(rank_place))
 
         stock_names = sorted(stock_names, key=lambda x: ranks[x] if not np.isnan(ranks[x]) else -1, reverse=True)
 
@@ -170,8 +189,8 @@ def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweigh
             if count >= denominator:
                 break
 
-        print date_str
-        print res_weight
+        log_with_filename(chart_title, date_str)
+        log_with_filename(chart_title, res_weight)
 
         # # 调整持仓比例
         # # 先把不在top rank中的给卖了
@@ -192,10 +211,15 @@ def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweigh
             else:
                 account.update_with_all_stock_one_line({stock_name: (tem_rows.loc[date_str, stock_name], date_str)})
 
-        print account.returns
+        log_with_filename(chart_title, account.returns)
 
+    chart_file_name = 'returns_%f_maxdd_%f' % (account.returns, max_dd)
     draw_line_chart(date_list, [chart_s01_value, chart_account_value], ['s01', 'account'], default_colors[:2],
-                    'relative_milestone_20_15_rank_15')
+                    chart_file_name, title=chart_title, output_dir=chart_output_dir)
+    log_with_filename(chart_title, account)
+    log_with_filename(chart_title, account.returns)
+    log_with_filename(chart_title, 'max dd' + str(max_dd))
+    log_with_filename(chart_title, 'time cose : ' + str(datetime.datetime.now() - time_before))
 
 
 if __name__ == '__main__':
