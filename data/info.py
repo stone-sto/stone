@@ -52,6 +52,7 @@ class DBInfoCache(object):
             traceback.print_exc()
 
         res_data = build_stock_data_frame(DBYahooDay.line_fix)
+        res_data = res_data.sort_values(by='date')
         res_data.iloc[:, 0:1000].to_sql(self.table_name_fix_part1, self.connection)
         res_data.iloc[:, 1000:2000].to_sql(self.table_name_fix_part2, self.connection)
         res_data.iloc[:, 2000:].to_sql(self.table_name_fix_part3, self.connection)
@@ -77,6 +78,8 @@ class DBInfoCache(object):
         res_data = res_data.merge(part3, how='left', left_on='index', right_on='index')
 
         self.close()
+
+        print res_data
 
         # 数据的格式还有点问题, 需要fix一下
         date_list = res_data['date']
@@ -115,8 +118,7 @@ if __name__ == '__main__':
     before = datetime.datetime.now()
     print before
 
-    res_data = DBInfoCache().get_fix()
-    print res_data.loc['2015-10-15', 's300249_sz']
+    DBInfoCache().set_fix()
 
     after = datetime.datetime.now()
     print after

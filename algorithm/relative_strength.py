@@ -3,11 +3,72 @@ import datetime
 
 from account.account import MoneyAccount
 from chart.chart_utils import draw_line_chart, default_colors
+from data.back_result import DBResult
 from data.info import DBInfoCache
 import numpy as np
 import pandas as pd
 
 from log.log_utils import log_with_filename
+
+
+def res_statistic():
+    """
+    统计各个参数对应情况下的结果, 写入cache数据库
+    """
+    import os
+    res_file_dir_path = os.path.join(os.path.dirname(__file__), '../record')
+    result_db = DBResult()
+    result_db.open()
+    file_count = 0
+    for file_name in os.listdir(res_file_dir_path):
+        if file_name.endswith('.log'):
+            file_path = os.path.join(res_file_dir_path, file_name)
+            # 先搞定各个参数的值
+            params = file_name.split('_')
+            params[-1] = params[-1][:-4]
+
+            denominator = params[1]
+            malength = params[3]
+            temlength = params[5]
+            reweightperiod = params[7] if params[7].strip() != 'None' else '-1'
+            winpercent = params[9]
+            needups01 = params[11]
+            sellafterwieght = '1' if params[13].strip() == 'True' else '0'
+            losepercent = params[15]
+            rankposition = params[17] if params[17].strip() != 'None' else '-1'
+            rankpercent = params[19]
+
+            # 然后是读出结果, 包含returns和maxdd
+            block_size = '4096'
+            with open(file_path, 'r') as fp:
+                fp.seek(0, os.SEEK_END)
+                cur_pos = fp.tell()
+                block_size = min(cur_pos, block_size)
+                fp.seek(cur_pos - block_size, os.SEEK_SET)
+                block_data = fp.read()
+                lines = block_data.split('\n')
+
+                if lines[-3].find('max dd-') < 0:
+                    continue
+
+                returns = lines[-4].strip()
+                maxdd = lines[-3][6:]
+
+                result_tuple = (
+                    denominator, malength, temlength, reweightperiod, winpercent, needups01, sellafterwieght,
+                    losepercent, rankposition, rankpercent, maxdd, returns,
+                )
+                print result_tuple
+                result_db.cursor.execute('insert into %s (%s)values(%s)' % (
+                    result_db.table_relative_strength_zero,
+                    ','.join(result_db.relative_strenth_zero_columns),
+                    ','.join(result_tuple)
+                ))
+                result_db.connection.commit()
+                file_count += 1
+                print file_count
+
+    result_db.close()
 
 
 def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweight_period=None, win_percent=0.2,
@@ -79,6 +140,7 @@ def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweigh
     # 回撤
     max_dd = 0
     max_property = 0
+
     for date_str in date_list:
 
         # 所有的历史数据
@@ -223,9 +285,21 @@ def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweigh
 
 
 if __name__ == '__main__':
+    pass
+    # 执行回测, 先注释掉, 跑结果统计
     win_percent_list = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]
     lose_percent_list = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
+
+    # 做个修补
+    win_percent_list = win_percent_list[3:5]
+    lose_percent_list = lose_percent_list[3:5]
     for win_percent in win_percent_list:
         for lose_percent in lose_percent_list:
             relative_strength_monentum(denominator=5, win_percent=win_percent, lose_percent=lose_percent,
-                                       rank_percent=0.4)
+                                       rank_percent=0.38)
+    # 统计
+    # res_statistic()
+
+    # 测试
+    # relative_strength_monentum(denominator=5, win_percent=0.2, lose_percent=0.2,
+    #                                    rank_percent=0.38)
